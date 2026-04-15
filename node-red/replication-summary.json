@@ -1,0 +1,102 @@
+{
+  "cps2": {
+    "alias": "CPS2",
+    "formalCpsId": "CPS-002",
+    "cpsName": "CNC_5Eixos_Evo",
+    "baseTopic": "cps2",
+    "description": "Centro de usinagem de 5 eixos com compensação térmica e monitoramento de integridade estrutural.",
+    "features": [
+      "desbaste",
+      "acabamento",
+      "probin"
+    ],
+    "sensors": [
+      "Velocidade_Spindle",
+      "Posicao_Eixo_X",
+      "Posicao_Eixo_Y",
+      "Temperatura_Spindle",
+      "Vibracao_Estrutura"
+    ],
+    "learningTopic": "acsm2/cps2/learning",
+    "oeeTopic": "cps2/oee",
+    "acsmOeeTopic": "acsm2/cps2/oee",
+    "federationOeeTopic": "acsm/cps2/oee",
+    "federationLearningTopic": "acsm/cps2/learning",
+    "datasheet": "/datasheetCNC_5Eixos_Evo.pdf",
+    "endpoints": {
+      "DescriptionEndpoint": "http://localhost:3000/api/acsm2/cps2/description",
+      "SummaryEndpoint": "http://localhost:3000/api/acsm2/cps2/summary",
+      "IndicatorsEndpoint": "http://localhost:3000/api/acsm2/cps2/indicators",
+      "HistoryEndpoint": "http://localhost:3000/api/acsm2/cps2/history",
+      "HealthEndpoint": "http://localhost:3000/api/acsm2/cps2/health"
+    }
+  },
+  "cps4": {
+    "alias": "CPS4",
+    "formalCpsId": "CPS-004",
+    "cpsName": "AGV_Logistico_Zeta",
+    "baseTopic": "cps4",
+    "description": "AGV para logística interna com navegação SLAM, monitoramento de obstáculos e diagnóstico de motores em tempo real.",
+    "features": [
+      "navegacao",
+      "pickup_delivery",
+      "docking"
+    ],
+    "sensors": [
+      "Bateria",
+      "Velocidade",
+      "Posicao_Mapa",
+      "Distancia_Obstaculo",
+      "Status_Motor_Tração"
+    ],
+    "learningTopic": "acsm2/cps4/learning",
+    "oeeTopic": "cps4/oee",
+    "acsmOeeTopic": "acsm2/cps4/oee",
+    "federationOeeTopic": "acsm/cps4/oee",
+    "federationLearningTopic": "acsm/cps4/learning",
+    "datasheet": "/datasheetAGV_logico_zeta.pdf",
+    "endpoints": {
+      "DescriptionEndpoint": "http://localhost:3000/api/acsm2/cps4/description",
+      "SummaryEndpoint": "http://localhost:3000/api/acsm2/cps4/summary",
+      "IndicatorsEndpoint": "http://localhost:3000/api/acsm2/cps4/indicators",
+      "HistoryEndpoint": "http://localhost:3000/api/acsm2/cps4/history",
+      "HealthEndpoint": "http://localhost:3000/api/acsm2/cps4/health"
+    }
+  },
+  "cps6": {
+    "alias": "CPS6",
+    "formalCpsId": "CPS-006",
+    "cpsName": "BufferLine_50467",
+    "baseTopic": "cps6",
+    "description": "Módulo de esteira de acumulação/buffer com zonas independentes para desacoplamento de fluxo entre estações.",
+    "features": [
+      "zone1_release",
+      "zone2_release",
+      "zone3_release",
+      "detectar_zone1",
+      "detectar_zone2",
+      "detectar_zone3"
+    ],
+    "sensors": [
+      "NominalVoltage_24V",
+      "Zone1_Occupied",
+      "Zone2_Occupied",
+      "Zone3_Occupied",
+      "MotorCurrent",
+      "MotorTemperature"
+    ],
+    "learningTopic": "acsm2/cps6/learning",
+    "oeeTopic": "cps6/oee",
+    "acsmOeeTopic": "acsm2/cps6/oee",
+    "federationOeeTopic": "acsm/cps6/oee",
+    "federationLearningTopic": "acsm/cps6/learning",
+    "datasheet": "/aasx/files/CPS-06_BufferLine_50467_datasheet.pdf",
+    "endpoints": {
+      "DescriptionEndpoint": "http://localhost:3000/api/acsm2/cps6/description",
+      "SummaryEndpoint": "http://localhost:3000/api/acsm2/cps6/summary",
+      "IndicatorsEndpoint": "http://localhost:3000/api/acsm2/cps6/indicators",
+      "HistoryEndpoint": "http://localhost:3000/api/acsm2/cps6/history",
+      "HealthEndpoint": "http://localhost:3000/api/acsm2/cps6/health"
+    }
+  }
+}
