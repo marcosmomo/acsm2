@@ -2278,7 +2278,7 @@ export const CPSProvider = ({ children, acsmId, config }) => {
         });
 
         const analytics = runSystemAnalytics();
-        publishLevel3LocalContribution(analytics);
+       // publishLevel3LocalContribution(analytics);
         return;
       }
 
