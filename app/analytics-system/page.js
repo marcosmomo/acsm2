@@ -160,7 +160,7 @@ function safeArray(v) {
 }
 
 function AnalyticsSystemContent() {
-  const { systemAnalytics, runSystemAnalytics, level3RuntimeStatus } = useCPSContext();
+  const { systemAnalytics, runSystemAnalytics } = useCPSContext();
 
   const analytics = useMemo(() => {
     if (systemAnalytics?.ts || systemAnalytics?.timestamp || systemAnalytics?.generatedAt) {
@@ -210,19 +210,14 @@ console.log('LEARNING FIELDS', {
     analytics?.predictedRisk?.confidence ??
     analytics?.derivedLearning?.confidence ??
     0;
-  const level3Mode = String(
-    analytics?.level3Mode || level3RuntimeStatus?.level3Mode || 'partial'
-  ).toUpperCase();
-  const activeParticipantsCount =
-    analytics?.activeParticipantsCount ?? level3RuntimeStatus?.activeParticipantsCount ?? 0;
-  const expectedParticipantsCount =
-    analytics?.expectedParticipantsCount ?? level3RuntimeStatus?.expectedParticipantsCount ?? 3;
+  const level3Mode = String(analytics?.level3Mode || 'partial').toUpperCase();
+  const activeParticipantsCount = analytics?.activeParticipantsCount ?? 0;
+  const expectedParticipantsCount = analytics?.expectedParticipantsCount ?? 3;
   const managedCpsCount =
     analytics?.managedCpsCount ??
     analytics?.globalSummary?.managedCpsCount ??
     analytics?.systemEvidence?.managedCpsCount ??
     analytics?.systemEvidence?.totalManagedCps ??
-    level3RuntimeStatus?.managedCpsCount ??
     0;
 
   const systemEvidence = analytics?.systemEvidence || {};

@@ -16,10 +16,6 @@ import {
   keepManagedValue,
   normalizeCpsId,
 } from '../lib/acsm/config';
-import {
-  buildLevel3LocalContribution,
-  createLevel3PublisherService,
-} from '../lib/chain/services/level3';
 
 const CPSContext = createContext(undefined);
 const ACTIVE_ACSM = getActiveAcsmConfig();
@@ -1229,15 +1225,6 @@ export const CPSProvider = ({ children, acsmId, config }) => {
   const [cpsAnalytics, setCpsAnalyticsState] = useState({});
   const [ingestionBuffer, setIngestionBuffer] = useState([]);
   const [systemAnalytics, setSystemAnalytics] = useState(emptySystemAnalytics());
-  const [level3RuntimeStatus, setLevel3RuntimeStatus] = useState({
-    level3Mode: 'partial',
-    activeParticipantsCount: 0,
-    expectedParticipantsCount: 3,
-    managedCpsCount: 0,
-    managedCpsIds: [],
-    presentAcsms: [],
-    missingAcsms: [],
-  });
 
   const knowledgeStoreRef = useRef({
     cps: {},
@@ -1290,19 +1277,6 @@ export const CPSProvider = ({ children, acsmId, config }) => {
   const featPendingRef = useRef({});
   const featTimerRef = useRef({});
   const featLastEmitRef = useRef({});
-  const level3PublisherRef = useRef(
-    createLevel3PublisherService({
-      topics: ACSM_TOPICS,
-      onLog: (message) =>
-        setLog((prev) => [
-          ...prev,
-          {
-            time: new Date().toLocaleTimeString(),
-            message,
-          },
-        ]),
-    })
-  );
 
   const availableCPS = useMemo(() => {
     return Object.values(registry)
@@ -1821,41 +1795,6 @@ export const CPSProvider = ({ children, acsmId, config }) => {
     };
   }, [registry, addedCPS, ingestionBuffer, cpsAnalytics, systemAnalytics]);
 
-  const publishLevel3LocalContribution = useCallback(
-    async (localAnalytics) => {
-      if (!mqttClient || !localAnalytics) return false;
-
-      const localOee = toNumber(localAnalytics?.globalOEE?.oee ?? localAnalytics?.oee?.oee, null);
-      const managedCpsIds = acsmConfig.managedCpsIds || [];
-      if (!Number.isFinite(localOee) || (!addedCPSRef.current.length && !managedCpsIds.length)) {
-        return false;
-      }
-
-      try {
-        const payload = buildLevel3LocalContribution({
-          acsmId: ACTIVE_ACSM.id,
-          industryId: acsmConfig.industryId,
-          industryName: acsmConfig.industryName,
-          systemAnalytics: localAnalytics,
-          addedCPS: addedCPSRef.current,
-          managedCps: managedCpsIds,
-          generatedAt: new Date().toISOString(),
-        });
-
-        return await level3PublisherRef.current.publishLocalContribution(mqttClient, payload);
-      } catch (error) {
-        setLog((prev) => [
-          ...prev,
-          {
-            time: new Date().toLocaleTimeString(),
-            message: `[LEVEL3_INPUT_ERROR] ${error?.message || error}`,
-          },
-        ]);
-        return false;
-      }
-    },
-    [acsmConfig.industryId, acsmConfig.industryName, acsmConfig.managedCpsIds, mqttClient]
-  );
 
   const patchRegistryCps = useCallback((cpsRef, patch) => {
     if (!cpsRef) return;
@@ -2277,8 +2216,7 @@ export const CPSProvider = ({ children, acsmId, config }) => {
           ts: normalized?.ts ?? Date.now(),
         });
 
-        const analytics = runSystemAnalytics();
-       // publishLevel3LocalContribution(analytics);
+        runSystemAnalytics();
         return;
       }
 
@@ -2366,8 +2304,6 @@ export const CPSProvider = ({ children, acsmId, config }) => {
           payload: analytics?.coordinatorOutput || null,
         });
 
-        publishLevel3LocalContribution(analytics);
-
         return;
       }
     } catch (err) {
@@ -2382,7 +2318,6 @@ export const CPSProvider = ({ children, acsmId, config }) => {
     }
   }, [
     patchRegistryCps,
-    publishLevel3LocalContribution,
     pushSystemEvent,
     runSystemAnalytics,
     updateKnowledgeStoreFromAnalytics,
@@ -3560,7 +3495,6 @@ export const CPSProvider = ({ children, acsmId, config }) => {
         getMQTTOperations,
         ingestionBuffer,
         systemAnalytics,
-        level3RuntimeStatus,
         runSystemAnalytics,
         getCoordinatorOutput,
         getKnowledgeStore,
