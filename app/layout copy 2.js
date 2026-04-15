@@ -26,9 +26,6 @@ export default function RootLayout({ children }) {
                 <Link href="/" className="acsm-nav-link">
                   Home
                 </Link>
-                <Link href="/acsm-intelligence" className="acsm-nav-link acsm-nav-link-highlight">
-                  ACSM Intelligence
-                </Link>
               </nav>
             </div>
           </header>

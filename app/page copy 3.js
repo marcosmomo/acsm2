@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import MainComponent from '../components/MainComponent';
 
 export default function Home() {
@@ -29,10 +28,6 @@ export default function Home() {
             </p>
 
             <div className="premium-actions">
-              <Link href="/acsm-intelligence" className="premium-btn premium-btn-primary">
-                Open Intelligence Center
-              </Link>
-
               <a href="#main-platform" className="premium-btn premium-btn-secondary">
                 Go to Main Platform
               </a>
@@ -42,7 +37,7 @@ export default function Home() {
           <div className="premium-hero-right">
             <div className="premium-panel premium-panel-main">
               <div className="premium-panel-label">Operational Focus</div>
-              <div className="premium-panel-title">ACSM Intelligence Center</div>
+              <div className="premium-panel-title">System Analytics</div>
               <div className="premium-panel-text">
                 Executive view of system coordination with integrated reasoning,
                 learning and synthesized recommendations for the manufacturing cell.
@@ -101,9 +96,9 @@ export default function Home() {
             </p>
           </div>
 
-          <Link href="/acsm-intelligence" className="premium-strip-btn">
-            Enter Intelligence Center →
-          </Link>
+          <a href="#main-platform" className="premium-strip-btn">
+            Enter System Analytics
+          </a>
         </div>
       </section>
 

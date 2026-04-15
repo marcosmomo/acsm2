@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { CPSProvider, useCPSContext } from '../../context/CPSContext';
+import SystemIntelligencePanel from '../../components/SystemIntelligencePanel';
 import {
   filterContributionRanking,
   filterManagedArrayByCps,
@@ -476,6 +477,8 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
             tone={getPatternTone(analytics?.learningConsensus)}
           />
         </div>
+
+        <SystemIntelligencePanel analytics={analytics} />
 
         <SectionCard
           title="Executive Interpretation"

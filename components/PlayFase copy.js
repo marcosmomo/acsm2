@@ -6,10 +6,6 @@ import { useCPSContext } from '../context/CPSContext';
 // ===== Status helpers (EN) =====
 const normalizeStatus = (status) => String(status || '').toLowerCase();
 
-const openACSMIntelligencePage = () => {
-  window.open('/acsm-intelligence', '_blank'); // abre em nova aba
-};
-
 const humanizeFeatStatus = (status) => {
   const s = normalizeStatus(status);
   if (s === 'failure' || s === 'fail' || s === 'error') return 'Failure';
@@ -201,10 +197,6 @@ const openSystemAnalyticsPage = () => {
   window.open('/analytics-system', '_blank', 'noopener,noreferrer');
 };
 
-const openKnowledgePublisherPage = () => {
-  window.open('/knowledge-publisher', '_blank', 'noopener,noreferrer');
-};
-
 const formatDateTime = (value) => {
   if (!value) return '—';
   try {
@@ -323,21 +315,6 @@ const PlayFase = () => {
               >
                 System Analytics                
               </button>
-              <button
-                onClick={openKnowledgePublisherPage}
-                className="desc-btn"
-                title="Open ACSM knowledge publisher"
-              >
-                ACSM Knowledge Publisher
-              </button>
-              <button
-                onClick={openACSMIntelligencePage}
-                className="desc-btn"
-                title="Open ACSM intelligent coordination center"
-              >
-                ACSM Intelligence
-              </button>
-              
             </div>
           </div>
 

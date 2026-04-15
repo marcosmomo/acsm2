@@ -269,6 +269,7 @@ const MAX_HISTORY_PER_CPS = 500;
 const MAX_SYSTEM_EVENTS = 500;
 const MAX_SYSTEM_SNAPSHOTS = 500;
 const MAX_SYSTEM_LEARNING_HISTORY = 500;
+const SYSTEM_LEARNING_WINDOW_SIZE = 6;
 
 const normalizeTopic = (t) => String(t || '').replace(/^\/+/, '').replace(/\/+$/, '');
 
@@ -510,8 +511,8 @@ const buildSystemLearning = (learningHistory) => {
     };
   }
 
-  const recentWindow = history.slice(-5);
-  const baselineWindow = history.slice(-12, -5);
+  const recentWindow = history.slice(-SYSTEM_LEARNING_WINDOW_SIZE);
+  const baselineWindow = history.slice(-12, -SYSTEM_LEARNING_WINDOW_SIZE);
   const fullOeeSeries = getHistorySeries(history, 'systemOEE');
   const recentOeeSeries = getHistorySeries(recentWindow, 'systemOEE');
   const baselineOeeSeries = getHistorySeries(baselineWindow, 'systemOEE');
@@ -561,6 +562,7 @@ const buildSystemLearning = (learningHistory) => {
     clamp01(Math.abs(drift) * 8 + Math.abs(slope) * 10 + volatility * 6).toFixed(4)
   );
 
+  /*
   const cpsContributionRanking = filterContributionRanking(
     (current?.cpsMetrics || [])
     .map((item) => {
@@ -595,7 +597,42 @@ const buildSystemLearning = (learningHistory) => {
     })
     .sort((a, b) => b.score - a.score),
     ACTIVE_ACSM
-  );
+  );*/
+
+  const cpsContributionRanking = (current?.cpsMetrics || [])
+  .map((item) => {
+    const availabilityLoss = clamp01(1 - toNumber(item?.availability, 0));
+    const performanceLoss = clamp01(1 - toNumber(item?.performance, 0));
+    const qualityLoss = clamp01(1 - toNumber(item?.quality, 0));
+    const oeeLoss = clamp01(1 - toNumber(item?.oee, 0));
+
+    const score = Number(
+      (
+        oeeLoss * 0.4 +
+        availabilityLoss * 0.2 +
+        performanceLoss * 0.2 +
+        qualityLoss * 0.2
+      ).toFixed(4)
+    );
+
+    return {
+      cpsId: normalizeCpsId(item?.cpsId),
+      cpsName: item?.cpsName || null,
+      score,
+      oee: toNumber(item?.oee, null),
+      availability: toNumber(item?.availability, null),
+      performance: toNumber(item?.performance, null),
+      quality: toNumber(item?.quality, null),
+      dominantLoss:
+        availabilityLoss >= performanceLoss && availabilityLoss >= qualityLoss
+          ? 'availability'
+          : performanceLoss >= availabilityLoss && performanceLoss >= qualityLoss
+            ? 'performance'
+            : 'quality',
+    };
+  })
+  .filter((item) => item?.cpsId)
+  .sort((a, b) => b.score - a.score);
 
   let recommendation =
     'Maintain monitoring of aggregated OEE indicators and preserve current operating discipline.';
@@ -1130,6 +1167,11 @@ const emptySystemAnalytics = () => ({
   explanation: 'No system-level explanation yet.',
   coordinatorOutput: null,
   systemEvidence: {},
+  systemLearningModel: null,
+  systemCausality: null,
+  systemAnomaly: null,
+  systemForecast: null,
+  systemReasoning: {},
   crossCpsPatterns: [],
   riskSummary: {},
   recommendedFocus: null,
@@ -1208,6 +1250,346 @@ const inferRiskLevel = (globalOee, predictedGlobalOee, topCritical, cascadeEffec
   if (cascadeEffect || topCritical >= 0.7 || globalOee < 0.55) return 'high';
   if ((predictedGlobalOee ?? globalOee) < globalOee || topCritical >= 0.45) return 'medium';
   return 'low';
+};
+
+const getDominantLossFromMetrics = ({ availability, performance, quality } = {}) => {
+  const losses = [
+    { key: 'availability', value: clamp01(1 - toNumber(availability, 0)) },
+    { key: 'performance', value: clamp01(1 - toNumber(performance, 0)) },
+    { key: 'quality', value: clamp01(1 - toNumber(quality, 1)) },
+  ].sort((a, b) => b.value - a.value);
+
+  return losses[0]?.key || 'availability';
+};
+
+const getSystemTrend = ({ learningPattern, predictedGlobalOEE, globalOEE, historySummary } = {}) => {
+  const pattern = String(learningPattern || '').toLowerCase();
+  if (pattern.includes('recovering')) return 'positive';
+  if (pattern.includes('unstable') || pattern.includes('oscillation')) return 'unstable';
+  if (pattern.includes('degrading') || pattern.includes('degraded')) return 'negative';
+
+  const current = toNumber(globalOEE?.oee ?? globalOEE, null);
+  const predicted = toNumber(predictedGlobalOEE, null);
+  if (Number.isFinite(current) && Number.isFinite(predicted)) {
+    if (predicted < current - 0.01) return 'negative';
+    if (predicted > current + 0.01) return 'positive';
+  }
+
+  const volatility = toNumber(historySummary?.volatility, 0);
+  if (volatility >= 0.035) return 'unstable';
+  return 'stable';
+};
+
+const getSystemStateFromSignals = ({ trend, riskLevel, anomalyStatus } = {}) => {
+  if (trend === 'positive') return 'recovering';
+  if (anomalyStatus === 'unstable' || trend === 'unstable') return 'unstable';
+  if (riskLevel === 'high' || trend === 'negative') return 'degrading';
+  if (riskLevel === 'medium') return 'attention';
+  return 'stable';
+};
+
+const getStabilityFromSignals = ({ trend, learningPattern, anomalyStatus } = {}) => {
+  const pattern = String(learningPattern || '').toLowerCase();
+  if (trend === 'positive' || pattern.includes('recovering')) return 'improving';
+  if (trend === 'unstable' || anomalyStatus === 'unstable' || pattern.includes('unstable')) {
+    return 'unstable';
+  }
+  if (trend === 'negative' || pattern.includes('degrading') || pattern.includes('degraded')) {
+    return 'degrading';
+  }
+  return 'persistent';
+};
+
+const getCpsStateFromSnapshot = (snap) => {
+  const pattern = String(
+    snap?.learningPattern ||
+      snap?.learning?.pattern ||
+      snap?.learning?.learned ||
+      snap?.features?.learningPattern ||
+      ''
+  ).toLowerCase();
+  const risk = String(snap?.riskLevel || snap?.reasoning?.riskLevel || '').toLowerCase();
+  const anomalyStatus = String(snap?.anomaly?.status || '').toLowerCase();
+  const oee = toNumber(snap?.oee?.oee ?? snap?.oee?.value ?? snap?.oee?.current, null);
+
+  if (pattern.includes('recovering')) return 'improving';
+  if (pattern.includes('unstable') || anomalyStatus === 'unstable') return 'unstable';
+  if (pattern.includes('degrading') || risk === 'high' || (Number.isFinite(oee) && oee < 0.55)) {
+    return 'degrading';
+  }
+  if (risk === 'medium' || (Number.isFinite(oee) && oee < 0.75)) return 'attention';
+  return 'stable';
+};
+
+const getExpectedOee = ({ globalOEE, predictedGlobalOEE, trend } = {}) => {
+  const current = toNumber(globalOEE?.oee ?? globalOEE, 0);
+  const predicted = toNumber(predictedGlobalOEE, null);
+  const fallback =
+    trend === 'negative'
+      ? current - 0.04
+      : trend === 'positive'
+        ? current + 0.03
+        : trend === 'unstable'
+          ? current - 0.02
+          : current;
+  return Number(clamp01(Number.isFinite(predicted) ? predicted : fallback).toFixed(4));
+};
+
+const buildSystemEvidenceList = ({
+  globalOEE,
+  latest,
+  criticalCPS,
+  dominantLoss,
+  trend,
+  learningPattern,
+  systemLearning,
+  anomalyScore,
+}) => {
+  const evidence = [];
+  const currentOee = toNumber(globalOEE?.oee, 0);
+  const availability = toNumber(globalOEE?.availability, 0);
+  const performance = toNumber(globalOEE?.performance, 0);
+  const quality = toNumber(globalOEE?.quality, 1);
+  const degradedCps = (latest || []).filter((snap) => {
+    const oee = toNumber(snap?.oee?.oee ?? snap?.oee?.value ?? snap?.oee?.current, 1);
+    const risk = String(snap?.riskLevel || snap?.reasoning?.riskLevel || '').toLowerCase();
+    const pattern = String(snap?.learningPattern || snap?.learning?.pattern || '').toLowerCase();
+    return oee < 0.75 || risk === 'high' || pattern.includes('degrad') || pattern.includes('chronic');
+  });
+
+  if (currentOee < 0.75) evidence.push(`global OEE remained below 75% in the last ${SYSTEM_LEARNING_WINDOW_SIZE} windows`);
+  if (availability < 0.65) evidence.push(`global availability remained below 65% in the last ${SYSTEM_LEARNING_WINDOW_SIZE} windows`);
+  if (performance < 0.75) evidence.push('global performance is below the expected operating band');
+  if (quality < 0.95) evidence.push('global quality is below the expected conformance band');
+  if (degradedCps.length >= 2) evidence.push('multiple CPS showed simultaneous degradation');
+  if (criticalCPS?.cpsId) evidence.push(`${criticalCPS.cpsId} contributed most to the system loss`);
+  if (trend === 'negative') evidence.push('global OEE trend is negative across recent windows');
+  if (trend === 'unstable' || anomalyScore >= 0.65) evidence.push('system variability increased across recent windows');
+  if (String(learningPattern || '').includes('chronic')) {
+    evidence.push(`global learning converged to persistent ${dominantLoss} loss`);
+  }
+  if (systemLearning?.riskDrivers?.length) {
+    evidence.push(`learning risk drivers include ${systemLearning.riskDrivers.slice(0, 2).join(' and ')}`);
+  }
+
+  return [...new Set(evidence)].slice(0, 8);
+};
+
+const buildSystemIntelligence = ({
+  latest,
+  globalOEE,
+  criticalityRanking,
+  criticalCPS,
+  dominantLosses,
+  learnedPattern,
+  riskLevel,
+  confidence,
+  systemLearning,
+  cascadeEffect,
+  synchronizationIssue,
+  predictedGlobalOEE,
+}) => {
+  const dominantLoss =
+    systemLearning?.dominantChronicLoss ||
+    dominantLosses?.[0]?.dominantDimension ||
+    getDominantLossFromMetrics(globalOEE);
+  const learningPattern = systemLearning?.learningPattern || learnedPattern || 'unknown';
+  const trend = getSystemTrend({
+    learningPattern,
+    predictedGlobalOEE: systemLearning?.predictedSystemOEE ?? predictedGlobalOEE,
+    globalOEE,
+    historySummary: systemLearning?.historySummary,
+  });
+  const degradedByAvailability = (latest || []).filter(
+    (snap) => toNumber(snap?.oee?.availability, 1) < 0.7
+  );
+  const degradedByPerformance = (latest || []).filter(
+    (snap) => toNumber(snap?.oee?.performance, 1) < 0.75
+  );
+  const highAnomalyCps = (latest || []).filter((snap) => toNumber(snap?.anomaly?.score, 0) >= 0.55);
+  const enrichedRanking = (criticalityRanking || [])
+    .map((entry) => {
+      const snap = (latest || []).find(
+        (item) => normalizeCpsId(item?.cpsId || item?.baseTopic) === normalizeCpsId(entry?.cpsId)
+      );
+      const dominantLossForCps = getDominantLossFromMetrics({
+        availability: snap?.oee?.availability,
+        performance: snap?.oee?.performance,
+        quality: snap?.oee?.quality,
+      });
+      const localConfidence = toNumber(
+        snap?.confidence ?? snap?.reasoning?.confidence ?? snap?.learning?.confidence,
+        0.5
+      );
+      const anomalyBoost = toNumber(snap?.anomaly?.score, 0) * 0.15;
+      const riskBoost =
+        String(snap?.riskLevel || snap?.reasoning?.riskLevel || '').toLowerCase() === 'high'
+          ? 0.08
+          : 0;
+      const impactScore = clamp01(toNumber(entry?.score, 0) * 0.78 + localConfidence * 0.14 + anomalyBoost + riskBoost);
+
+      return {
+        cpsId: entry.cpsId,
+        cpsName: entry.cpsName || snap?.cpsName || '',
+        baseTopic: entry.baseTopic || snap?.baseTopic || entry.cpsId,
+        score: entry.score,
+        impactScore: Number(impactScore.toFixed(4)),
+        dominantLoss: dominantLossForCps,
+        state: getCpsStateFromSnapshot(snap),
+      };
+    })
+    .sort((a, b) => b.impactScore - a.impactScore);
+  const relatedCps = enrichedRanking
+    .filter((entry) => entry.impactScore >= 0.35 || entry.cpsId === criticalCPS?.cpsId)
+    .slice(0, 3)
+    .map((entry) => entry.cpsId);
+  const affectedCps = relatedCps.length ? relatedCps : enrichedRanking.slice(0, 2).map((entry) => entry.cpsId);
+
+  let probableCause = `${dominantLoss} loss`;
+  let causeType = `${dominantLoss}_loss`;
+  if (degradedByAvailability.length >= 2) {
+    probableCause = 'distributed availability loss';
+    causeType = 'multi_cps_degradation';
+  } else if (enrichedRanking[0]?.impactScore >= 0.65) {
+    probableCause = 'single critical bottleneck';
+    causeType = 'single_critical_bottleneck';
+  } else if (degradedByPerformance.length >= 2 || dominantLoss === 'performance') {
+    probableCause = 'execution slowdown';
+    causeType = 'execution_slowdown';
+  } else if (synchronizationIssue || highAnomalyCps.length >= 2) {
+    probableCause = 'system instability';
+    causeType = 'system_instability';
+  } else if (cascadeEffect || String(learningPattern).includes('degrad')) {
+    probableCause = 'propagating degradation risk';
+    causeType = 'propagating_degradation_risk';
+  }
+
+  const affectedDimensions = [
+    dominantLoss,
+    toNumber(globalOEE?.oee, 0) < 0.75 ? 'global_oee' : null,
+    toNumber(globalOEE?.availability, 1) < 0.7 ? 'availability' : null,
+    toNumber(globalOEE?.performance, 1) < 0.75 ? 'throughput' : null,
+    toNumber(globalOEE?.quality, 1) < 0.95 ? 'quality' : null,
+  ].filter(Boolean);
+  const anomalyScore = Number(
+    clamp01(
+      Math.max(
+        systemLearning?.fleetAnomalyIndex || 0,
+        1 - toNumber(globalOEE?.oee, 0),
+        enrichedRanking[0]?.impactScore || 0
+      )
+    ).toFixed(4)
+  );
+  let anomalyStatus = 'normal';
+  if (trend === 'unstable' || synchronizationIssue) anomalyStatus = 'unstable';
+  else if (riskLevel === 'high' || toNumber(globalOEE?.oee, 0) < 0.55) anomalyStatus = 'degraded';
+  else if (affectedDimensions.length >= 2 || riskLevel === 'medium') anomalyStatus = 'below_normal';
+  else if (toNumber(globalOEE?.oee, 0) >= 0.85) anomalyStatus = 'above_normal';
+
+  const systemEvidence = buildSystemEvidenceList({
+    globalOEE,
+    latest,
+    criticalCPS,
+    dominantLoss,
+    trend,
+    learningPattern,
+    systemLearning,
+    anomalyScore,
+  });
+  const stability = getStabilityFromSignals({ trend, learningPattern, anomalyStatus });
+  const systemState = getSystemStateFromSignals({ trend, riskLevel, anomalyStatus });
+  const expectedOEE = getExpectedOee({
+    globalOEE,
+    predictedGlobalOEE: systemLearning?.predictedSystemOEE ?? predictedGlobalOEE,
+    trend,
+  });
+  const forecastRisk =
+    riskLevel === 'high' || anomalyStatus === 'degraded' || expectedOEE < 0.55
+      ? 'high'
+      : riskLevel === 'medium' || anomalyStatus === 'unstable' || expectedOEE < 0.7
+        ? 'medium'
+        : 'low';
+  const nextState =
+    forecastRisk === 'high' && affectedCps.length >= 2
+      ? 'coordination_required'
+      : String(learningPattern).includes('chronic') && affectedCps.length >= 2
+        ? 'maintenance_wave_risk'
+        : trend === 'positive'
+          ? 'stabilizing'
+          : trend === 'unstable'
+            ? 'unstable'
+            : trend === 'negative'
+              ? 'distributed_degradation'
+              : 'stabilizing';
+  const causalConfidence = Number(
+    clamp01(Math.max(toNumber(confidence, 0.5) - 0.02, systemEvidence.length >= 3 ? 0.72 : 0.6)).toFixed(2)
+  );
+
+  const systemLearningModel = {
+    model: 'multi_cps_system_learning_v1',
+    pattern: learningPattern,
+    windowSize: SYSTEM_LEARNING_WINDOW_SIZE,
+    dominantLoss,
+    criticalCps: affectedCps.length ? affectedCps : criticalCPS?.cpsId ? [criticalCPS.cpsId] : [],
+    stability,
+    confidence: toNumber(confidence, systemLearning?.confidence ?? 0),
+    description: `${stability} system pattern driven by ${dominantLoss} loss across critical CPS`,
+  };
+  const systemCausality = {
+    probableCause,
+    causeType,
+    primaryDriver: enrichedRanking[0]?.cpsId || criticalCPS?.cpsId || null,
+    relatedCps: affectedCps,
+    causalConfidence,
+  };
+  const systemAnomaly = {
+    score: anomalyScore,
+    status: anomalyStatus,
+    affectedDimensions: [...new Set(affectedDimensions)],
+    affectedCps,
+  };
+  const systemForecast = {
+    nextState,
+    timeHorizon: 'short_term',
+    risk: forecastRisk,
+    confidence: toNumber(confidence, systemLearning?.confidence ?? 0),
+    expectedOEE,
+  };
+  const systemReasoning = {
+    systemState,
+    dominantLoss,
+    primaryIssue:
+      causeType === 'multi_cps_degradation'
+        ? `distributed ${dominantLoss} loss across critical CPS`
+        : `${probableCause} led by ${systemCausality.primaryDriver || 'managed CPS'}`,
+    probableCause:
+      systemCausality.primaryDriver && causeType !== 'single_critical_bottleneck'
+        ? `${causeType.replace(/_/g, ' ')} led by ${systemCausality.primaryDriver}`
+        : probableCause,
+    trend,
+    confidence: toNumber(confidence, systemLearning?.confidence ?? 0),
+    executiveInterpretation:
+      systemState === 'stable'
+        ? 'system operation remains stable with no dominant multi-CPS degradation'
+        : `system ${systemState} behavior is driven by ${dominantLoss} losses concentrated in critical CPS`,
+    recommendation:
+      affectedCps.length >= 2
+        ? `prioritize stabilization of ${affectedCps.join(' and ')} before broader optimization actions`
+        : systemCausality.primaryDriver
+          ? `prioritize stabilization of ${systemCausality.primaryDriver} before broader optimization actions`
+          : 'maintain system monitoring and continue coordinated supervision',
+  };
+
+  return {
+    systemLearningModel,
+    systemEvidence,
+    systemCausality,
+    criticalityRanking: enrichedRanking,
+    systemAnomaly,
+    systemForecast,
+    systemReasoning,
+    trend,
+  };
 };
 
 export const CPSProvider = ({ children, acsmId, config }) => {
@@ -1721,6 +2103,45 @@ export const CPSProvider = ({ children, acsmId, config }) => {
     analytics.riskDrivers = systemLearning.riskDrivers;
     analytics.historySummary = systemLearning.historySummary;
 
+    const systemIntelligence = buildSystemIntelligence({
+      latest,
+      globalOEE,
+      criticalityRanking: analytics.criticalityRanking,
+      criticalCPS: analytics.criticalCPS,
+      dominantLosses: analytics.dominantLosses,
+      learnedPattern: analytics.learningPattern || learnedPattern,
+      riskLevel: analytics.riskLevel || riskLevel,
+      confidence: analytics.confidence,
+      systemLearning,
+      cascadeEffect,
+      synchronizationIssue,
+      predictedGlobalOEE: analytics.predictedSystemOEE ?? predictedGlobalOEE,
+    });
+
+    analytics.systemLearningModel = systemIntelligence.systemLearningModel;
+    analytics.systemEvidenceList = systemIntelligence.systemEvidence;
+    analytics.systemCausality = systemIntelligence.systemCausality;
+    analytics.criticalityRanking = systemIntelligence.criticalityRanking;
+    analytics.criticality = systemIntelligence.criticalityRanking;
+    analytics.systemAnomaly = systemIntelligence.systemAnomaly;
+    analytics.systemForecast = systemIntelligence.systemForecast;
+    analytics.systemReasoning = systemIntelligence.systemReasoning;
+    analytics.reasoning = {
+      ...(analytics.reasoning || {}),
+      ...systemIntelligence.systemReasoning,
+      supportingEvidence: systemIntelligence.systemEvidence,
+      systemCausality: systemIntelligence.systemCausality,
+      systemLearningModel: systemIntelligence.systemLearningModel,
+      systemForecast: systemIntelligence.systemForecast,
+    };
+    analytics.trend = systemIntelligence.trend;
+    analytics.recommendation =
+      systemIntelligence.systemReasoning?.recommendation || analytics.recommendation;
+    analytics.systemEvidence = {
+      ...(analytics.systemEvidence || {}),
+      narrative: systemIntelligence.systemEvidence,
+    };
+
     analytics.coordinatorOutput = {
       ...(analytics.coordinatorOutput || {}),
       learningState: analytics.learningState,
@@ -1730,6 +2151,13 @@ export const CPSProvider = ({ children, acsmId, config }) => {
       dominantChronicLoss: analytics.dominantChronicLoss,
       confidence: analytics.confidence,
       recommendation: analytics.recommendation,
+      systemLearningModel: analytics.systemLearningModel,
+      systemEvidence: analytics.systemEvidenceList,
+      systemCausality: analytics.systemCausality,
+      criticalityRanking: analytics.criticalityRanking,
+      systemAnomaly: analytics.systemAnomaly,
+      systemForecast: analytics.systemForecast,
+      systemReasoning: analytics.systemReasoning,
     };
 
     setSystemAnalytics((prev) => ({
