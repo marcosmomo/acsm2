@@ -8,7 +8,7 @@ import { getActiveAcsmConfig, normalizeCpsId } from '../../lib/acsm/config';
 
 const activeAcsm = getActiveAcsmConfig();
 
-// 1. Criamos um subcomponente para processar os parâmetros e exibir o conteúdo
+// 1. Subcomponent that processes parameters and displays the content
 function AnalyticsContent() {
   const searchParams = useSearchParams();
 
@@ -56,7 +56,7 @@ function AnalyticsContent() {
             </div>
 
             <div style={{ marginTop: 8, color: '#64748b', fontSize: 15 }}>
-              Monitoramento analítico e aprendizado do ativo industrial
+              Analytical monitoring and learning for the industrial asset
             </div>
           </div>
 
@@ -87,13 +87,13 @@ function AnalyticsContent() {
   );
 }
 
-// 2. A página principal agora apenas "envelopa" o conteúdo com o Suspense e o Provider
+// 2. Main page wraps the content with Suspense and the Provider
 export default function AnalyticsPage() {
   return (
     <CPSProvider>
       <Suspense fallback={
         <div style={{ padding: 28, textAlign: 'center', fontWeight: 'bold' }}>
-          Carregando Dashboard de Automação...
+          Loading automation dashboard...
         </div>
       }>
         <AnalyticsContent />

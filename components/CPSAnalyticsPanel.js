@@ -78,7 +78,7 @@ const getStatusMeta = (value) => {
 
   if (n === null) {
     return {
-      label: 'Sem dados',
+      label: 'No data available',
       tone: 'neutral',
       color: '#64748b',
       bg: '#f8fafc',
@@ -121,7 +121,7 @@ const getStatusMeta = (value) => {
   }
 
   return {
-    label: 'Crítico',
+    label: 'Critical',
     tone: 'bad',
     color: '#991b1b',
     bg: '#fef2f2',
@@ -132,7 +132,7 @@ const getStatusMeta = (value) => {
 
 const getDominantLossLabel = (value) => {
   const v = String(value || '').toLowerCase();
-  if (v === 'availability') return 'Disponibilidade';
+  if (v === 'availability') return 'Availability';
   if (v === 'performance') return 'Performance';
   if (v === 'quality') return 'Qualidade';
   return '—';
@@ -148,7 +148,7 @@ const getConfidenceMeta = (value) => {
     return { label: 'Alta', color: '#166534', bg: '#dcfce7' };
   }
   if (n >= 0.6) {
-    return { label: 'Média', color: '#92400e', bg: '#fef3c7' };
+    return { label: 'Medium', color: '#92400e', bg: '#fef3c7' };
   }
   return { label: 'Baixa', color: '#991b1b', bg: '#fee2e2' };
 };
@@ -552,7 +552,7 @@ function OeeGauge({ value }) {
         }}
       >
         <div style={{ fontSize: 12, color: '#cbd5e1', fontWeight: 700 }}>
-          OEE Global
+          Global OEE
         </div>
         <div
           style={{
@@ -751,8 +751,8 @@ const oeeValue = getOeeValue(analytics, statistics);
                 lineHeight: 1.7,
               }}
             >
-              Dashboard analítico do ativo <strong style={{ color: '#fff' }}>{cpsId}</strong>,
-              com consolidação de OEE, learning, reasoning e evidências operacionais.
+              Analytical asset dashboard for <strong style={{ color: '#fff' }}>{cpsId}</strong>,
+              with consolidated OEE, learning, reasoning, and operational evidence.
             </div>
 
             <div
@@ -769,7 +769,7 @@ const oeeValue = getOeeValue(analytics, statistics);
                 color="#ffffff"
               />
               <InfoChip
-                label={`Confiança ${confidenceMeta.label}`}
+                label={`Confidence ${confidenceMeta.label}`}
                 bg="rgba(255,255,255,0.12)"
                 color="#ffffff"
               />
@@ -779,7 +779,7 @@ const oeeValue = getOeeValue(analytics, statistics);
                 color={systemHealth.color}
               />
               <InfoChip
-                label={`Última leitura ${fmtDate(lastUpdate)}`}
+                label={`Last reading ${fmtDate(lastUpdate)}`}
                 bg="rgba(255,255,255,0.12)"
                 color="#ffffff"
               />
@@ -817,7 +817,7 @@ const oeeValue = getOeeValue(analytics, statistics);
           >
             <OeeGauge value={oeeValue} />
             <div style={{ color: '#cbd5e1', fontSize: 13, textAlign: 'center' }}>
-              Classificação atual: <strong style={{ color: '#fff' }}>{oeeMeta.label}</strong>
+              Current classification: <strong style={{ color: '#fff' }}>{oeeMeta.label}</strong>
             </div>
             <ProgressBar value={oeeValue} />
           </div>
@@ -835,7 +835,7 @@ const oeeValue = getOeeValue(analytics, statistics);
           icon={<ShieldCheck size={18} />}
           label="Availability"
           value={fmtPct(availability)}
-          helper="Tempo efetivo disponível para produção."
+          helper="Effective time available for production."
           meta={availabilityMeta}
           sparkValues={[
             statistics?.availability_mean,
@@ -848,7 +848,7 @@ const oeeValue = getOeeValue(analytics, statistics);
           icon={<Gauge size={18} />}
           label="Performance"
           value={fmtPct(performance)}
-          helper="Eficiência operacional frente ao ciclo esperado."
+          helper="Operational efficiency against the expected cycle."
           meta={performanceMeta}
           sparkValues={[
             statistics?.performance_mean,
@@ -861,7 +861,7 @@ const oeeValue = getOeeValue(analytics, statistics);
           icon={<CheckCircle2 size={18} />}
           label="Quality"
           value={fmtPct(quality)}
-          helper="Taxa de peças conformes no processo."
+          helper="Rate of conforming parts in the process."
           meta={qualityMeta}
           sparkValues={[
             statistics?.quality_mean,
@@ -872,9 +872,9 @@ const oeeValue = getOeeValue(analytics, statistics);
 
         <KpiCard
           icon={<TrendingUp size={18} />}
-          label="OEE Global"
+          label="Global OEE"
           value={fmtPct(oeeValue)}
-          helper={`Classificação atual: ${oeeMeta.label}`}
+          helper={`Current classification: ${oeeMeta.label}`}
           meta={oeeMeta}
           sparkValues={[
             statistics?.oee_mean,
@@ -886,9 +886,9 @@ const oeeValue = getOeeValue(analytics, statistics);
 
       <PremiumSection
         icon={<Brain size={15} />}
-        eyebrow="INTELIGÊNCIA ANALÍTICA"
+        eyebrow="ANALYTICAL INTELLIGENCE"
         title="Executive Learning Summary"
-        subtitle="Síntese do aprendizado estatístico local, interpretação do comportamento recente e recomendação operacional."
+        subtitle="Summary of local statistical learning, recent behavior interpretation, and operational recommendation."
       >
         <div style={responsiveTwoCol}>
           <div
@@ -909,21 +909,21 @@ const oeeValue = getOeeValue(analytics, statistics);
                 letterSpacing: '-0.02em',
               }}
             >
-              {learning?.type || 'Sem classificação recebida'}
+              {learning?.type || 'No classification received'}
             </div>
 
             <div style={{ color: '#334155', lineHeight: 1.8, fontSize: 15, marginBottom: 16 }}>
-              {learning?.learned || 'Nenhum resumo de aprendizado foi recebido.'}
+              {learning?.learned || 'No learning summary was received.'}
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <InfoChip
-                label={`Modelo: ${learning?.model || '—'}`}
+                label={`Model: ${learning?.model || '—'}`}
                 bg="#dbeafe"
                 color="#1d4ed8"
               />
               <InfoChip
-                label={`Confiança: ${fmtNum(learning?.confidence, 2)}`}
+                label={`Confidence: ${fmtNum(learning?.confidence, 2)}`}
                 bg={confidenceMeta.bg}
                 color={confidenceMeta.color}
               />
@@ -951,7 +951,7 @@ const oeeValue = getOeeValue(analytics, statistics);
             >
               {learning?.recommendation ||
                 reasoning?.recommendation ||
-                'Sem recomendação operacional disponível.'}
+                'No operational recommendation available.'}
             </div>
             {Array.isArray(analytics?.qualitativeEvidence) && analytics.qualitativeEvidence.length > 0 ? (
   <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -971,9 +971,9 @@ const oeeValue = getOeeValue(analytics, statistics);
 
       <PremiumSection
         icon={<FlaskConical size={15} />}
-        eyebrow="EVIDÊNCIAS"
+        eyebrow="EVIDENCE"
         title="Evidence Against Local Baseline"
-        subtitle="Variações percentuais detectadas nas grandezas observadas em comparação com o comportamento de referência."
+        subtitle="Percentage variations detected in observed variables compared with reference behavior."
       >
         <div
           style={{
@@ -1021,9 +1021,9 @@ const oeeValue = getOeeValue(analytics, statistics);
 
       <PremiumSection
         icon={<AlertTriangle size={15} />}
-        eyebrow="RACIOCÍNIO ANALÍTICO"
+        eyebrow="ANALYTICAL REASONING"
         title="Root-Cause Reasoning"
-        subtitle="Leitura causal da principal perda do OEE e recomendação de investigação técnica."
+        subtitle="Causal reading of the primary OEE loss and technical investigation recommendation."
       >
         <div style={responsiveTwoCol}>
           <div
@@ -1071,7 +1071,7 @@ const oeeValue = getOeeValue(analytics, statistics);
                 marginBottom: 18,
               }}
             >
-              {reasoning?.explanation || 'Sem explicação recebida.'}
+              {reasoning?.explanation || 'No explanation received.'}
             </div>
 
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
@@ -1085,7 +1085,7 @@ const oeeValue = getOeeValue(analytics, statistics);
                 lineHeight: 1.7,
               }}
             >
-              {reasoning?.recommendation || 'Sem recomendação recebida.'}
+              {reasoning?.recommendation || 'No recommendation received.'}
             </div>
           </div>
         </div>
@@ -1093,9 +1093,9 @@ const oeeValue = getOeeValue(analytics, statistics);
 
       <PremiumSection
         icon={<BarChart3 size={15} />}
-        eyebrow="ESTATÍSTICAS"
+        eyebrow="STATISTICS"
         title="Statistical Consolidation"
-        subtitle="Resumo de médias e medianas dos principais indicadores calculados pelo módulo analítico."
+        subtitle="Summary of means and medians for the main indicators calculated by the analytics module."
       >
         <div
           style={{
@@ -1117,9 +1117,9 @@ const oeeValue = getOeeValue(analytics, statistics);
 
       <PremiumSection
         icon={<Activity size={15} />}
-        eyebrow="OBSERVAÇÃO EXECUTIVA"
+        eyebrow="EXECUTIVE OBSERVATION"
         title="Operational Interpretation"
-        subtitle="Síntese textual pronta para dashboard, banca ou apresentação técnica."
+        subtitle="Text summary ready for dashboard, review panel, or technical presentation."
       >
         <div
           style={{
@@ -1146,14 +1146,14 @@ const oeeValue = getOeeValue(analytics, statistics);
             Executive Note
           </div>
 
-          O ativo <strong>{cpsId}</strong> apresenta <strong>availability de {fmtPct(availability)}</strong>,
-          <strong> performance de {fmtPct(performance)}</strong> e <strong> quality de {fmtPct(quality)}</strong>,
-          resultando em um <strong>OEE global de {fmtPct(oeeValue)}</strong>, classificado como{' '}
-          <strong>{oeeMeta.label}</strong>. O módulo de learning indica{' '}
-          <strong>{learning?.learned || 'ausência de conclusão relevante'}</strong>, com confiança{' '}
-          <strong>{fmtNum(learning?.confidence, 2)}</strong>. A principal perda identificada está associada à{' '}
-          <strong>{getDominantLossLabel(reasoning?.dominantLoss)}</strong>, sugerindo foco de análise em{' '}
-          <strong>{reasoning?.recommendation || 'investigação operacional adicional'}</strong>.
+          The asset <strong>{cpsId}</strong> shows <strong>Availability of {fmtPct(availability)}</strong>,
+          <strong> Performance of {fmtPct(performance)}</strong> and <strong> Quality of {fmtPct(quality)}</strong>,
+          resulting in a <strong>Global OEE of {fmtPct(oeeValue)}</strong>, classified as{' '}
+          <strong>{oeeMeta.label}</strong>. The learning module indicates{' '}
+          <strong>{learning?.learned || 'no relevant conclusion'}</strong>, with confidence{' '}
+          <strong>{fmtNum(learning?.confidence, 2)}</strong>. The primary identified loss is associated with{' '}
+          <strong>{getDominantLossLabel(reasoning?.dominantLoss)}</strong>, suggesting analysis focus on{' '}
+          <strong>{reasoning?.recommendation || 'additional operational investigation'}</strong>.
         </div>
       </PremiumSection>
     </div>

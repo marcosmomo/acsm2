@@ -1,4 +1,4 @@
-// /app/page.js (Página principal do Next.js)
+// /app/page.js (Next.js main page)
 
 import MainComponent from '../components/MainComponent';
 

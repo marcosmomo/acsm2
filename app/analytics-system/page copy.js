@@ -213,8 +213,7 @@ function AnalyticsSystemContent() {
                   lineHeight: 1.7,
                 }}
               >
-                Visão cognitiva global da manufatura com reasoning, learning e coordenação
-                em nível ACSM.
+                Global cognitive view of manufacturing with reasoning, learning, and coordination at ACSM level.
               </div>
 
               <div
@@ -257,10 +256,10 @@ function AnalyticsSystemContent() {
                 {criticalCPS?.cpsId || '—'}
               </div>
               <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 }}>
-                CPS crítico atual com score <strong>{num(criticalCPS?.score, 3)}</strong>.
+                Current Critical CPS with score <strong>{num(criticalCPS?.score, 3)}</strong>.
               </div>
               <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 }}>
-                Gargalo atual: <strong>{bottleneck?.cpsId || '—'}</strong>
+                Current bottleneck: <strong>{bottleneck?.cpsId || '—'}</strong>
               </div>
             </div>
           </div>
@@ -318,7 +317,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="Executive Interpretation"
-          subtitle="Síntese pronta para apresentação, relatório ou coordenação da cadeia."
+          subtitle="Executive summary for dashboard, report, or supply chain coordination."
         >
           <div
             style={{
@@ -373,7 +372,7 @@ function AnalyticsSystemContent() {
         >
           <SectionCard
             title="System-Level Reasoning"
-            subtitle="Indicadores de dominância de perdas, gargalo e comportamento sistêmico."
+            subtitle="Dominance indicators for losses, bottleneck, and systemic behavior."
           >
             <div style={{ display: 'grid', gap: 12 }}>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, background: '#ffffff' }}>
@@ -412,7 +411,7 @@ function AnalyticsSystemContent() {
 
           <SectionCard
             title="System-Level Learning"
-            subtitle="Padrão aprendido, risco previsto e confiança do meta-orquestrador."
+            subtitle="Learned pattern, predicted risk, and meta-orchestrator Confidence."
           >
             <div style={{ display: 'grid', gap: 12 }}>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, background: '#ffffff' }}>
@@ -441,7 +440,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="Criticality Ranking"
-          subtitle="Contribuição relativa dos CPS para a criticidade global."
+          subtitle="Relative CPS contribution to global criticality."
         >
           {ranking.length ? (
             <div style={{ display: 'grid', gap: 10 }}>
@@ -487,7 +486,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="Dominant Losses by CPS"
-          subtitle="Perdas mais relevantes por ativo na composição do OEE global."
+          subtitle="Most relevant losses by asset in the Global OEE composition."
         >
           {losses.length ? (
             <div

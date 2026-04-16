@@ -458,8 +458,8 @@ export default function ACSMKnowledgePublisher() {
                 lineHeight: 1.7,
               }}
             >
-              Serviço responsável por sintetizar o conhecimento sistêmico da {ACTIVE_ACSM.code} e
-              publicá-lo ao coordenador da cadeia de suprimentos via MQTT.
+              Service responsible for synthesizing systemic knowledge from {ACTIVE_ACSM.code} and
+              publishing it to the supply chain coordinator through MQTT.
             </div>
 
             <div
@@ -594,22 +594,22 @@ export default function ACSMKnowledgePublisher() {
         <MetricCard
           label="MQTT Topic"
           value={KNOWLEDGE_TOPIC}
-          helper="Tópico utilizado para disseminação do pacote de conhecimento."
+          helper="Topic used to disseminate the knowledge package."
         />
         <MetricCard
           label="Global OEE"
           value={`${((knowledgePackage?.plantKnowledge?.globalOEE ?? 0) * 100).toFixed(1)}%`}
-          helper={`Consolidação sistêmica dos CPS ativos na ${ACTIVE_ACSM.code}.`}
+          helper={`Systemic consolidation of CPS assets in ${ACTIVE_ACSM.code}.`}
         />
         <MetricCard
           label="Critical CPS"
           value={keepManagedValue(knowledgePackage?.plantKnowledge?.criticalCPS?.cpsId, ACTIVE_ACSM) || '-'}
-          helper="Ativo com maior criticidade no instante atual."
+          helper="Asset with the highest current Criticality."
         />
         <MetricCard
           label="Last Publish"
           value={lastPublishedAt || '—'}
-          helper="Momento da última publicação do pacote ao coordenador."
+          helper="Timestamp of the last package publication to the coordinator."
         />
       </div>
 
@@ -649,8 +649,8 @@ export default function ACSMKnowledgePublisher() {
           </h3>
 
           <div style={{ marginTop: 8, color: '#475569', fontSize: 14, lineHeight: 1.7 }}>
-            Visualização estruturada do pacote de conhecimento sistêmico que será enviado
-            ao coordenador da cadeia.
+            Structured view of the systemic knowledge package that will be sent
+            to the supply chain coordinator.
           </div>
         </div>
 

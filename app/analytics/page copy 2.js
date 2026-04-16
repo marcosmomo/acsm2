@@ -56,7 +56,7 @@ export default function AnalyticsPage() {
               </div>
 
               <div style={{ marginTop: 8, color: '#64748b', fontSize: 15 }}>
-                Monitoramento analítico e aprendizado do ativo industrial
+                Analytical monitoring and learning for the industrial asset
               </div>
             </div>
 

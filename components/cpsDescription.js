@@ -29,7 +29,7 @@ export default function CPSDescription({ cps }) {
         setLoading(false);
 
       } catch (err) {
-        console.error("Erro ao carregar CPS", err);
+        console.error("Error loading CPS", err);
       }
     }
 
@@ -41,8 +41,8 @@ export default function CPSDescription({ cps }) {
 
   }, [API]);
 
-  if (loading) return <div>Carregando CPS...</div>;
-  if (!data) return <div>Endpoint de descrição indisponível para este CPS.</div>;
+  if (loading) return <div>Loading CPS...</div>;
+  if (!data) return <div>Description endpoint unavailable for this CPS.</div>;
 
   const runtime = data.runtime || {};
   const docs = data.documentation || {};
@@ -62,7 +62,7 @@ export default function CPSDescription({ cps }) {
         gap: 20
       }}>
 
-        {/* DOCUMENTAÇÃO */}
+        {/* DOCUMENTATION */}
 
         <div style={{
           background: "white",
@@ -70,7 +70,7 @@ export default function CPSDescription({ cps }) {
           borderRadius: 8
         }}>
 
-          <h3>Documentação do Ativo</h3>
+          <h3>Asset Documentation</h3>
 
           <p><b>CPS ID:</b> {data.cpsId}</p>
           <p><b>Tipo:</b> {data.assetType}</p>
@@ -84,7 +84,7 @@ export default function CPSDescription({ cps }) {
             href={`http://localhost:1880${docs?.datasheet?.publicUrl}`}
             target="_blank"
           >
-            Abrir Datasheet
+            Open Datasheet
           </a>
 
           <br/><br/>

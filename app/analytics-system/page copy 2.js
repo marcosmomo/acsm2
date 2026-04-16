@@ -251,8 +251,8 @@ function AnalyticsSystemContent() {
                   lineHeight: 1.7,
                 }}
               >
-                Visão cognitiva global da manufatura com reasoning, learning,
-                propagação entre CPS e coordenação sistêmica.
+                Global cognitive view of manufacturing with reasoning, learning,
+                propagation across CPS, and systemic coordination.
               </div>
 
               <div
@@ -365,7 +365,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="Executive Interpretation"
-          subtitle="Síntese pronta para apresentação, relatório ou coordenação da cadeia."
+          subtitle="Executive summary for dashboard, report, or supply chain coordination."
         >
           <div
             style={{
@@ -419,7 +419,7 @@ function AnalyticsSystemContent() {
         >
           <SectionCard
             title="System-Level Reasoning"
-            subtitle="Criticidade, gargalo, propagação e sincronização sistêmica."
+            subtitle="Criticality, bottleneck, propagation, and systemic synchronization."
           >
             <div style={{ display: 'grid', gap: 12 }}>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, background: '#ffffff' }}>
@@ -458,7 +458,7 @@ function AnalyticsSystemContent() {
 
           <SectionCard
             title="System-Level Learning"
-            subtitle="Padrão aprendido, risco previsto e consenso entre CPS."
+            subtitle="Learned pattern, predicted risk, and consensus across CPS."
           >
             <div style={{ display: 'grid', gap: 12 }}>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, background: '#ffffff' }}>
@@ -487,7 +487,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="System Evidence"
-          subtitle="Sinais dominantes e padrões cruzados entre CPS que sustentam a inferência sistêmica."
+          subtitle="Dominant signals and cross-CPS patterns supporting systemic inference."
         >
           <div
             style={{
@@ -551,7 +551,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="Coordination Action Plan"
-          subtitle="Saída executiva da ACSM para coordenação adaptativa, contingência ou recuperação."
+          subtitle="Executive output from ACSM for adaptive coordination, contingency, or recovery."
         >
           <div
             style={{
@@ -592,7 +592,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="System State"
-          subtitle="Estado executivo consolidado da célula com foco operacional e modo de coordenação."
+          subtitle="Consolidated executive state of the cell with operational focus and coordination mode."
         >
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
             <span style={badgeStyle(getRiskTone(systemState?.health === 'critical' ? 'high' : systemState?.health === 'attention' ? 'medium' : 'low'))}>
@@ -621,7 +621,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="Criticality Ranking"
-          subtitle="Contribuição relativa dos CPS para a criticidade global."
+          subtitle="Relative CPS contribution to global criticality."
         >
           {ranking.length ? (
             <div style={{ display: 'grid', gap: 10 }}>
@@ -667,7 +667,7 @@ function AnalyticsSystemContent() {
 
         <SectionCard
           title="Dominant Losses by CPS"
-          subtitle="Perdas mais relevantes por ativo na composição do OEE global."
+          subtitle="Most relevant losses by asset in the Global OEE composition."
         >
           {losses.length ? (
             <div

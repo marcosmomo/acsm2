@@ -20,6 +20,8 @@ import {
 const CPSContext = createContext(undefined);
 const ACTIVE_ACSM = getActiveAcsmConfig();
 const ACSM_TOPICS = ACTIVE_ACSM.topics;
+const LEVEL2_INTELLIGENCE_TOPIC =
+  ACSM_TOPICS.level2Intelligence || `${ACTIVE_ACSM.id}/level2/intelligence`;
 const sanitizeManagedText = (value) => {
   if (value === undefined || value === null) return value ?? null;
   return String(value)
@@ -1205,6 +1207,46 @@ const emptySystemAnalytics = () => ({
   },
 });
 
+const getSystemAnalyticsOverallOee = (analytics) => {
+  const value =
+    analytics?.globalSummary?.overallOee ??
+    analytics?.globalOEE?.oee ??
+    analytics?.oee?.oee ??
+    analytics?.oee?.current ??
+    analytics?.oee;
+
+  return toNumber(value, null);
+};
+
+const getSystemAnalyticsCriticalCpsId = (analytics) =>
+  normalizeCpsId(analytics?.criticalCPS?.cpsId || analytics?.criticalCps || analytics?.criticalCPS);
+
+const getSystemAnalyticsBottleneckCpsId = (analytics) =>
+  normalizeCpsId(
+    analytics?.bottleneck?.cpsId || analytics?.bottleneckCps || analytics?.bottleneck
+  );
+
+const hasDisplayableSystemAnalytics = (analytics) => {
+  if (!analytics || typeof analytics !== 'object') return false;
+
+  return (
+    Number.isFinite(getSystemAnalyticsOverallOee(analytics)) ||
+    hasKeys(analytics?.globalSummary) ||
+    hasKeys(analytics?.reasoning) ||
+    hasKeys(analytics?.learning) ||
+    hasKeys(analytics?.systemEvidence) ||
+    hasKeys(analytics?.historySummary) ||
+    hasItems(analytics?.criticalityRanking) ||
+    hasItems(analytics?.dominantLosses) ||
+    hasItems(analytics?.cpsContributionRanking) ||
+    !!getSystemAnalyticsCriticalCpsId(analytics) ||
+    !!getSystemAnalyticsBottleneckCpsId(analytics) ||
+    !!analytics?.generatedAt ||
+    !!analytics?.timestamp ||
+    !!analytics?.ts
+  );
+};
+
 const computeCriticalityFromSnapshot = (snap) => {
   if (!snap) return 0;
 
@@ -1592,6 +1634,85 @@ const buildSystemIntelligence = ({
   };
 };
 
+const buildLevel2IntelligencePackage = (analytics = {}, acsmConfig = ACTIVE_ACSM) => {
+  const timestamp = new Date().toISOString();
+  const globalOEEValue = toNumber(
+    analytics?.globalOEE?.oee ??
+      analytics?.globalOEE?.current ??
+      analytics?.coordinatorOutput?.globalOEE ??
+      analytics?.oee?.oee,
+    0
+  );
+  const critical = analytics?.criticalCPS && typeof analytics.criticalCPS === 'object'
+    ? analytics.criticalCPS
+    : analytics?.criticalCps
+      ? { cpsId: analytics.criticalCps }
+      : analytics?.bottleneck || {};
+  const systemReasoning = analytics?.systemReasoning || analytics?.reasoning || {};
+  const systemEvidence = Array.isArray(analytics?.systemEvidenceList)
+    ? analytics.systemEvidenceList
+    : Array.isArray(analytics?.systemEvidence)
+      ? analytics.systemEvidence
+      : Array.isArray(analytics?.systemEvidence?.narrative)
+        ? analytics.systemEvidence.narrative
+        : [];
+  const participants = Array.isArray(acsmConfig?.managedCpsIds)
+    ? acsmConfig.managedCpsIds
+    : [];
+
+  return {
+    schemaVersion: '1.0',
+    messageType: 'acsm_level2_intelligence',
+    source: acsmConfig?.id || ACTIVE_ACSM.id,
+    ts: Date.now(),
+    timestamp,
+    globalOEE: globalOEEValue,
+    trend: analytics?.trend || systemReasoning?.trend || analytics?.historySummary?.trend || 'stable',
+    confidence: toNumber(
+      analytics?.confidence ?? analytics?.coordinatorOutput?.confidence ?? systemReasoning?.confidence,
+      0
+    ),
+    riskLevel: analytics?.riskLevel || analytics?.coordinatorOutput?.predictedRisk || 'low',
+    criticalCPS: {
+      cpsId: critical?.cpsId || '',
+      cpsName: critical?.cpsName || '',
+    },
+    learningPattern:
+      analytics?.learningPattern ||
+      analytics?.learnedPattern ||
+      analytics?.patternLearned ||
+      analytics?.systemPattern ||
+      '',
+    learningConsensus: analytics?.learningConsensus || analytics?.derivedLearning?.learningConsensus || '',
+    recommendation:
+      analytics?.recommendation ||
+      analytics?.coordinatorOutput?.recommendation ||
+      systemReasoning?.recommendation ||
+      '',
+    executiveSummary:
+      analytics?.executiveSummary ||
+      analytics?.explanation ||
+      analytics?.coordinatorOutput?.explanation ||
+      systemReasoning?.executiveInterpretation ||
+      '',
+    systemLearningModel: analytics?.systemLearningModel || {},
+    systemEvidence,
+    systemCausality: analytics?.systemCausality || {},
+    criticalityRanking: Array.isArray(analytics?.criticalityRanking)
+      ? analytics.criticalityRanking
+      : [],
+    systemAnomaly: analytics?.systemAnomaly || {},
+    systemForecast: analytics?.systemForecast || {},
+    systemReasoning: systemReasoning || {},
+    participants,
+    managedCpsCount: participants.length,
+    publisher: {
+      acsmId: acsmConfig?.id || ACTIVE_ACSM.id,
+      level: 'level2',
+    },
+  };
+};
+
 export const CPSProvider = ({ children, acsmId, config }) => {
   const acsmConfig = useMemo(
     () => ({ ...getActiveAcsmConfig(acsmId), ...(config || {}) }),
@@ -1602,6 +1723,7 @@ export const CPSProvider = ({ children, acsmId, config }) => {
   const [addedCPS, setAddedCPS] = useState([]);
   const [log, setLog] = useState([]);
   const [mqttClient, setMqttClient] = useState(null);
+  const lastLevel2IntelligencePublishRef = useRef('');
   const [mqttData, setMqttData] = useState({});
   const [alerts, setAlerts] = useState([]);
   const [cpsAnalytics, setCpsAnalyticsState] = useState({});
@@ -1631,6 +1753,43 @@ export const CPSProvider = ({ children, acsmId, config }) => {
   useEffect(() => {
     cpsAnalyticsRef.current = cpsAnalytics;
   }, [cpsAnalytics]);
+
+  useEffect(() => {
+    if (!hasDisplayableSystemAnalytics(systemAnalytics)) return;
+
+    const payload = buildLevel2IntelligencePackage(systemAnalytics, ACTIVE_ACSM);
+    const serializedForDedupe = JSON.stringify({
+      ...payload,
+      ts: 0,
+      timestamp: '',
+    });
+    if (lastLevel2IntelligencePublishRef.current === serializedForDedupe) return;
+
+    if (!mqttClient || mqttClient.connected === false) {
+      setLog((prev) => [
+        ...prev,
+        {
+          time: new Date().toLocaleTimeString(),
+          message: `[LEVEL2_INTELLIGENCE_WARN] MQTT client not connected; ${LEVEL2_INTELLIGENCE_TOPIC} not published`,
+        },
+      ]);
+      return;
+    }
+
+    mqttClient.publish(LEVEL2_INTELLIGENCE_TOPIC, JSON.stringify(payload), {
+      qos: 0,
+      retain: false,
+    });
+    lastLevel2IntelligencePublishRef.current = serializedForDedupe;
+
+    setLog((prev) => [
+      ...prev,
+      {
+        time: new Date().toLocaleTimeString(),
+        message: `[LEVEL2_INTELLIGENCE_PUBLISH] Sent to ${LEVEL2_INTELLIGENCE_TOPIC}`,
+      },
+    ]);
+  }, [mqttClient, systemAnalytics]);
 
   const setCpsAnalytics = useCallback((updater) => {
     setCpsAnalyticsState((prev) => {

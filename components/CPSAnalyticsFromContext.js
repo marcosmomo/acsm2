@@ -88,7 +88,7 @@ export default function CPSAnalyticsFromContext({
       </div>
 
       <div style={{ color: '#475569', lineHeight: 1.8 }}>
-        Aguardando telemetria analítica MQTT para o CPS selecionado.
+        Awaiting MQTT analytics telemetry for the selected CPS.
       </div>
 
       <div
