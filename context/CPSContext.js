@@ -257,6 +257,10 @@ const HEALTH_TOPIC_SUFFIX = 'health';
 const ALARM_TOPIC_SUFFIX = 'alarm';
 const OEE_TOPIC_SUFFIX = 'oee';
 const LEARNING_TOPIC_SUFFIX = 'learning';
+const SUPPLY_CHAIN_FEEDBACK_GLOBAL_TOPIC =
+  ACSM_TOPICS.supplyChainFeedbackGlobal || 'supplychain/feedback/global';
+const SUPPLY_CHAIN_FEEDBACK_LOCAL_TOPIC =
+  ACSM_TOPICS.supplyChainFeedbackLocal || `supplychain/feedback/${ACTIVE_ACSM.id}`;
 
 const DEBUG_LOG_ALL_TOPICS = true;
 const CPS_AUTOLOAD_DELAY_MS = 3000;
@@ -306,6 +310,24 @@ const safeParseJson = (raw) => {
   } catch {
     return null;
   }
+};
+
+const emptySupplyChainFeedback = () => ({
+  lastUpdate: null,
+  globalAssessment: null,
+  globalDirectives: null,
+  local: null,
+  raw: null,
+});
+
+const normalizeSupplyChainFeedback = (payload = {}, acsmId = ACTIVE_ACSM.id) => {
+  if (!payload || typeof payload !== 'object') return emptySupplyChainFeedback();
+
+  return {
+    globalAssessment: payload.globalAssessment || null,
+    globalDirectives: payload.globalDirectives || null,
+    local: payload?.perACSMFeedback?.[acsmId] || null,
+  };
 };
 
 const clampArray = (arr, max) => {
@@ -1729,6 +1751,7 @@ export const CPSProvider = ({ children, acsmId, config }) => {
   const [cpsAnalytics, setCpsAnalyticsState] = useState({});
   const [ingestionBuffer, setIngestionBuffer] = useState([]);
   const [systemAnalytics, setSystemAnalytics] = useState(emptySystemAnalytics());
+  const [supplyChainFeedback, setSupplyChainFeedback] = useState(emptySupplyChainFeedback());
 
   const knowledgeStoreRef = useRef({
     cps: {},
@@ -3367,6 +3390,8 @@ export const CPSProvider = ({ children, acsmId, config }) => {
             ACSM_TOPICS.chainGlobalReasoning,
             ACSM_TOPICS.chainGlobalLearning,
             ACSM_TOPICS.chainCoordinatorOutput,
+            SUPPLY_CHAIN_FEEDBACK_GLOBAL_TOPIC,
+            SUPPLY_CHAIN_FEEDBACK_LOCAL_TOPIC,
             LIFECYCLE_UNPLUG_REQUEST_TOPIC,
             LIFECYCLE_UPDATE_FUNCTIONS_TOPIC,
           ];
@@ -3415,6 +3440,23 @@ export const CPSProvider = ({ children, acsmId, config }) => {
 
           if (DEBUG_LOG_ALL_TOPICS) {
             pushMqttLog(`[DEBUG] msg in '${rawTopic}': ${rawStr}`);
+          }
+
+          if (
+            normIncoming === SUPPLY_CHAIN_FEEDBACK_GLOBAL_TOPIC ||
+            normIncoming === SUPPLY_CHAIN_FEEDBACK_LOCAL_TOPIC ||
+            normIncoming.includes('supplychain/feedback')
+          ) {
+            const payload = safeParseJson(message) || {};
+            const normalized = normalizeSupplyChainFeedback(payload, ACTIVE_ACSM.id);
+            setSupplyChainFeedback({
+              lastUpdate: Date.now(),
+              globalAssessment: normalized.globalAssessment,
+              globalDirectives: normalized.globalDirectives,
+              local: normalized.local,
+              raw: payload,
+            });
+            return;
           }
 
           const isAnalyticsTopic =
@@ -4082,6 +4124,7 @@ export const CPSProvider = ({ children, acsmId, config }) => {
         getMQTTOperations,
         ingestionBuffer,
         systemAnalytics,
+        supplyChainFeedback,
         runSystemAnalytics,
         getCoordinatorOutput,
         getKnowledgeStore,

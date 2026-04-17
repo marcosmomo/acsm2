@@ -24,6 +24,15 @@ function pct(value) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+function txt(value, fallback = '-') {
+  if (value === undefined || value === null || value === '') return fallback;
+  return String(value);
+}
+
+function joinTargets(value) {
+  return Array.isArray(value) ? value.map((item) => txt(item, '')).filter(Boolean).join(', ') || '-' : '-';
+}
+
 function getOeeTone(value) {
   const n = Number(value);
   if (n >= 0.85) return 'good';
@@ -161,7 +170,7 @@ function safeArray(v) {
 }
 
 function AnalyticsSystemContent() {
-  const { systemAnalytics, runSystemAnalytics } = useCPSContext();
+  const { systemAnalytics, runSystemAnalytics, supplyChainFeedback } = useCPSContext();
 
   const analytics = useMemo(() => {
     if (systemAnalytics?.ts || systemAnalytics?.timestamp || systemAnalytics?.generatedAt) {
@@ -237,6 +246,9 @@ console.log('LEARNING FIELDS', {
   const riskDrivers = filterManagedArrayByCps(safeArray(analytics?.riskDrivers), activeAcsm);
   const actionPlan = analytics?.actionPlan || {};
   const systemState = analytics?.systemState || {};
+  const feedbackAssessment = supplyChainFeedback?.globalAssessment || {};
+  const feedbackDirectives = supplyChainFeedback?.globalDirectives || {};
+  const localFeedback = supplyChainFeedback?.local || {};
   const recommendedFocus =
   keepManagedValue(analytics?.recommendedFocus, activeAcsm) || '';
   const explanation =
@@ -403,6 +415,47 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
               </div>
               <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 }}>
                 Mode: <strong>{systemState?.coordinationMode || analytics?.coordinationMode || '?'}</strong>
+              </div>
+            </div>
+
+            <div
+              style={{
+                borderRadius: 22,
+                padding: 20,
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                display: 'grid',
+                gap: 10,
+              }}
+            >
+              <div style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 700 }}>
+                Supply Chain Feedback
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span style={badgeStyle(getRiskTone(feedbackAssessment?.riskLevel))}>
+                  Risk {txt(feedbackAssessment?.riskLevel)}
+                </span>
+                <span style={badgeStyle(getRiskTone(feedbackDirectives?.priority))}>
+                  Priority {txt(feedbackDirectives?.priority)}
+                </span>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                State: <strong>{txt(feedbackAssessment?.systemState)}</strong>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                Mode: <strong>{txt(feedbackAssessment?.coordinationMode)}</strong>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                Directive: <strong>{txt(localFeedback?.directive)}</strong>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                Focus: <strong>{txt(localFeedback?.focus)}</strong>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                Reason: <strong>{txt(localFeedback?.reason)}</strong>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+                Target CPS: <strong>{joinTargets(localFeedback?.targetCps)}</strong>
               </div>
             </div>
           </div>

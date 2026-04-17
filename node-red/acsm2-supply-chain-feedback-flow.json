@@ -1,0 +1,112 @@
+[
+  {
+    "id": "acsm2_feedback_tab",
+    "type": "tab",
+    "label": "ACSM2 Supply Chain Feedback",
+    "disabled": false,
+    "info": "Receives Supply Chain feedback for acsm2, normalizes it, and republishes internally."
+  },
+  {
+    "id": "acsm2_feedback_broker",
+    "type": "mqtt-broker",
+    "name": "HiveMQ Supply Chain",
+    "broker": "broker.hivemq.com",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {}
+  },
+  {
+    "id": "acsm2_feedback_in",
+    "type": "mqtt in",
+    "z": "acsm2_feedback_tab",
+    "name": "Supply Chain feedback acsm2",
+    "topic": "supplychain/feedback/acsm2",
+    "qos": "0",
+    "datatype": "auto",
+    "broker": "acsm2_feedback_broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 210,
+    "y": 120,
+    "wires": [
+      [
+        "acsm2_normalize_feedback"
+      ]
+    ]
+  },
+  {
+    "id": "acsm2_normalize_feedback",
+    "type": "function",
+    "z": "acsm2_feedback_tab",
+    "name": "Normalize Supply Chain Feedback",
+    "func": "function parsePayload(payload) {\n    if (!payload) return null;\n    if (typeof payload === \"string\") {\n        try { return JSON.parse(payload); } catch (err) { return null; }\n    }\n    if (Buffer.isBuffer(payload)) {\n        try { return JSON.parse(payload.toString()); } catch (err) { return null; }\n    }\n    return typeof payload === \"object\" ? payload : null;\n}\n\nconst payload = parsePayload(msg.payload);\nconst acsmId = \"acsm2\";\n\nif (!payload || payload.messageType !== \"supply_chain_feedback\") {\n    node.warn(\"Invalid supply_chain_feedback payload ignored.\");\n    return null;\n}\n\nmsg.topic = \"acsm2/chain/feedback\";\nmsg.payload = {\n    schemaVersion: payload.schemaVersion || \"1.0\",\n    messageType: \"normalized_supply_chain_feedback\",\n    source: payload.source || \"supply_chain\",\n    target: acsmId,\n    ts: payload.ts || Date.now(),\n    timestamp: payload.timestamp || new Date().toISOString(),\n    correlationId: payload.correlationId || \"\",\n    globalAssessment: payload.globalAssessment || null,\n    globalDirectives: payload.globalDirectives || null,\n    local: payload.perACSMFeedback ? payload.perACSMFeedback[acsmId] || null : null,\n    raw: payload\n};\n\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 520,
+    "y": 120,
+    "wires": [
+      [
+        "acsm2_feedback_out",
+        "acsm2_feedback_debug"
+      ]
+    ]
+  },
+  {
+    "id": "acsm2_feedback_out",
+    "type": "mqtt out",
+    "z": "acsm2_feedback_tab",
+    "name": "Publish acsm2/chain/feedback",
+    "topic": "acsm2/chain/feedback",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "acsm2_feedback_broker",
+    "x": 850,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "acsm2_feedback_debug",
+    "type": "debug",
+    "z": "acsm2_feedback_tab",
+    "name": "Normalized acsm2 feedback",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 850,
+    "y": 150,
+    "wires": []
+  }
+]
