@@ -14,7 +14,7 @@ export default function CPSAnalyticsFromContext({
   cpsId = getActiveAcsmConfig().defaultCpsId,
   title = 'OEE & Learning',
 }) {
-  const { cpsAnalytics = {} } = useCPSContext();
+  const { cpsAnalytics = {}, cpsAdaptiveIntelligence = {} } = useCPSContext();
 
   const rawKey = String(cpsId || '');
   const lowerKey = rawKey.toLowerCase();
@@ -128,7 +128,12 @@ export default function CPSAnalyticsFromContext({
 
   return (
     <div style={{ marginBottom: 12 }}>
-      <CPSAnalyticsPanel cpsId={cpsId} analytics={analytics} title={title} />
+      <CPSAnalyticsPanel
+        cpsId={cpsId}
+        analytics={analytics}
+        title={title}
+        adaptiveIntelligence={cpsAdaptiveIntelligence?.[normalizedKey] || cpsAdaptiveIntelligence?.[lowerKey] || cpsAdaptiveIntelligence?.[rawKey]}
+      />
     </div>
   );
 }

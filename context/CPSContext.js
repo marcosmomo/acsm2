@@ -22,6 +22,10 @@ const ACTIVE_ACSM = getActiveAcsmConfig();
 const ACSM_TOPICS = ACTIVE_ACSM.topics;
 const LEVEL2_INTELLIGENCE_TOPIC =
   ACSM_TOPICS.level2Intelligence || `${ACTIVE_ACSM.id}/level2/intelligence`;
+const LOCAL_ADAPTIVE_INTELLIGENCE_TOPIC =
+  ACSM_TOPICS.localAdaptiveIntelligence || `${ACTIVE_ACSM.id}/local/adaptive`;
+const SERVICE_ADAPTIVE_INTELLIGENCE_TOPIC =
+  ACSM_TOPICS.serviceAdaptiveIntelligence || 'acsm/service/adaptive';
 const sanitizeManagedText = (value) => {
   if (value === undefined || value === null) return value ?? null;
   return String(value)
@@ -316,7 +320,30 @@ const emptySupplyChainFeedback = () => ({
   lastUpdate: null,
   globalAssessment: null,
   globalDirectives: null,
+  adaptiveLearning: null,
+  adaptiveTimeline: [],
   local: null,
+  raw: null,
+});
+
+const emptyLocalAdaptiveIntelligence = () => ({
+  lastUpdate: null,
+  adaptiveLearningLocal: null,
+  adaptiveTimelineLocal: [],
+  raw: null,
+});
+
+const emptyServiceAdaptiveIntelligence = () => ({
+  lastUpdate: null,
+  adaptiveLearningService: null,
+  adaptiveTimelineService: [],
+  raw: null,
+});
+
+const emptyCpsAdaptiveEntry = () => ({
+  lastUpdate: null,
+  adaptiveLearningCps: null,
+  adaptiveTimelineCps: [],
   raw: null,
 });
 
@@ -326,6 +353,8 @@ const normalizeSupplyChainFeedback = (payload = {}, acsmId = ACTIVE_ACSM.id) => 
   return {
     globalAssessment: payload.globalAssessment || null,
     globalDirectives: payload.globalDirectives || null,
+    adaptiveLearning: payload.adaptiveLearning || null,
+    adaptiveTimeline: Array.isArray(payload.adaptiveTimeline) ? payload.adaptiveTimeline : [],
     local: payload?.perACSMFeedback?.[acsmId] || null,
   };
 };
@@ -1125,6 +1154,9 @@ const buildSubscriptionTopicsForCps = (cps) => {
   const featWildcardNo = joinTopic(baseNo, '+/feat/+/$state');
   const featWildcardWith = joinTopic(baseWith, '+/feat/+/$state');
 
+  const adaptiveNo = joinTopic(baseNo, 'local/adaptive');
+  const adaptiveWith = joinTopic(baseWith, 'local/adaptive');
+
   const featStates = (cps.funcionalidades || []).flatMap((f) => {
     const state = f?.topics?.state;
     if (!state) return [];
@@ -1149,6 +1181,8 @@ const buildSubscriptionTopicsForCps = (cps) => {
     oeeWith,
     alarmNo,
     alarmWith,
+    adaptiveNo,
+    adaptiveWith,
     ...featStates,
     featWildcardNo,
     featWildcardWith,
@@ -1752,6 +1786,13 @@ export const CPSProvider = ({ children, acsmId, config }) => {
   const [ingestionBuffer, setIngestionBuffer] = useState([]);
   const [systemAnalytics, setSystemAnalytics] = useState(emptySystemAnalytics());
   const [supplyChainFeedback, setSupplyChainFeedback] = useState(emptySupplyChainFeedback());
+  const [localAdaptiveIntelligence, setLocalAdaptiveIntelligence] = useState(
+    emptyLocalAdaptiveIntelligence()
+  );
+  const [serviceAdaptiveIntelligence, setServiceAdaptiveIntelligence] = useState(
+    emptyServiceAdaptiveIntelligence()
+  );
+  const [cpsAdaptiveIntelligence, setCpsAdaptiveIntelligence] = useState({});
 
   const knowledgeStoreRef = useRef({
     cps: {},
@@ -3380,6 +3421,7 @@ export const CPSProvider = ({ children, acsmId, config }) => {
           const analyticsSubs = [
             '+/oee',
             '+/learning',
+            '+/local/adaptive',
             ACSM_TOPICS.wildcardOee,
             ACSM_TOPICS.wildcardLearning,
             ACSM_TOPICS.globalOee,
@@ -3392,6 +3434,8 @@ export const CPSProvider = ({ children, acsmId, config }) => {
             ACSM_TOPICS.chainCoordinatorOutput,
             SUPPLY_CHAIN_FEEDBACK_GLOBAL_TOPIC,
             SUPPLY_CHAIN_FEEDBACK_LOCAL_TOPIC,
+            LOCAL_ADAPTIVE_INTELLIGENCE_TOPIC,
+            SERVICE_ADAPTIVE_INTELLIGENCE_TOPIC,
             LIFECYCLE_UNPLUG_REQUEST_TOPIC,
             LIFECYCLE_UPDATE_FUNCTIONS_TOPIC,
           ];
@@ -3453,9 +3497,58 @@ export const CPSProvider = ({ children, acsmId, config }) => {
               lastUpdate: Date.now(),
               globalAssessment: normalized.globalAssessment,
               globalDirectives: normalized.globalDirectives,
+              adaptiveLearning: normalized.adaptiveLearning,
+              adaptiveTimeline: normalized.adaptiveTimeline,
               local: normalized.local,
               raw: payload,
             });
+            return;
+          }
+
+          if (normIncoming === LOCAL_ADAPTIVE_INTELLIGENCE_TOPIC) {
+            const payload = safeParseJson(message) || {};
+            setLocalAdaptiveIntelligence({
+              lastUpdate: Date.now(),
+              adaptiveLearningLocal: payload.adaptiveLearningLocal || null,
+              adaptiveTimelineLocal: Array.isArray(payload.adaptiveTimelineLocal)
+                ? payload.adaptiveTimelineLocal
+                : [],
+              raw: payload,
+            });
+            return;
+          }
+
+          if (normIncoming === SERVICE_ADAPTIVE_INTELLIGENCE_TOPIC) {
+            const payload = safeParseJson(message) || {};
+            setServiceAdaptiveIntelligence({
+              lastUpdate: Date.now(),
+              adaptiveLearningService: payload.adaptiveLearningService || null,
+              adaptiveTimelineService: Array.isArray(payload.adaptiveTimelineService)
+                ? payload.adaptiveTimelineService
+                : [],
+              raw: payload,
+            });
+            return;
+          }
+
+          if (normIncoming.endsWith('/local/adaptive')) {
+            const payload = safeParseJson(message) || {};
+            const topicBase = normalizeTopic(normIncoming).split('/')[0] || '';
+            const cpsId = normalizeCpsId(payload?.cpsId || payload?.source || topicBase);
+            if (cpsId && cpsId.startsWith('cps')) {
+              setCpsAdaptiveIntelligence((prev) => ({
+                ...prev,
+                [cpsId]: {
+                  ...emptyCpsAdaptiveEntry(),
+                  lastUpdate: Date.now(),
+                  adaptiveLearningCps: payload.adaptiveLearningCps || null,
+                  adaptiveTimelineCps: Array.isArray(payload.adaptiveTimelineCps)
+                    ? payload.adaptiveTimelineCps
+                    : [],
+                  raw: payload,
+                },
+              }));
+            }
             return;
           }
 
@@ -4125,6 +4218,9 @@ export const CPSProvider = ({ children, acsmId, config }) => {
         ingestionBuffer,
         systemAnalytics,
         supplyChainFeedback,
+        localAdaptiveIntelligence,
+        serviceAdaptiveIntelligence,
+        cpsAdaptiveIntelligence,
         runSystemAnalytics,
         getCoordinatorOutput,
         getKnowledgeStore,

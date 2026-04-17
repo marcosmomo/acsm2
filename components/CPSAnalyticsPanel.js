@@ -18,6 +18,7 @@ import {
   Thermometer,
   LineChart,
 } from 'lucide-react';
+import AdaptiveTimeline from './AdaptiveTimeline';
 
 const toNumber = (v) => {
   const n = Number(v);
@@ -625,7 +626,7 @@ function EvidenceCard({ icon, label, value, accent }) {
   );
 }
 
-export default function CPSAnalyticsPanel({ cpsId, analytics, title }) {
+export default function CPSAnalyticsPanel({ cpsId, analytics, title, adaptiveIntelligence }) {
   const oee = analytics?.oee || {};
 const learning = analytics?.learning || {};
 const reasoning = analytics?.reasoning || {};
@@ -687,6 +688,10 @@ const oeeValue = getOeeValue(analytics, statistics);
     learning?.confidence,
     reasoning?.dominantLoss
   );
+  const adaptiveLearningCps = adaptiveIntelligence?.adaptiveLearningCps || {};
+  const adaptiveTimelineCps = Array.isArray(adaptiveIntelligence?.adaptiveTimelineCps)
+    ? adaptiveIntelligence.adaptiveTimelineCps
+    : [];
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
@@ -883,6 +888,35 @@ const oeeValue = getOeeValue(analytics, statistics);
           ]}
         />
       </div>
+
+      <PremiumSection
+        icon={<Activity size={15} />}
+        eyebrow="ADAPTIVE INTELLIGENCE"
+        title="Local Adaptive Intelligence"
+        subtitle="Short-window adaptive memory for this CPS asset."
+      >
+        <div style={responsiveTwoCol}>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 20, padding: 18, background: '#ffffff', display: 'grid', gap: 10 }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>CPS Adaptive State</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, color: '#475569', fontSize: 13, lineHeight: 1.5 }}>
+              <div>Temporal State: <strong>{adaptiveLearningCps?.temporalState || '-'}</strong></div>
+              <div>Adaptive Action: <strong>{adaptiveLearningCps?.adaptiveAction || '-'}</strong></div>
+              <div>Strategy Class: <strong>{adaptiveLearningCps?.strategyClass || '-'}</strong></div>
+              <div>Effectiveness: <strong>{adaptiveLearningCps?.interventionEffectiveness || '-'}</strong></div>
+            </div>
+            <div style={{ color: '#64748b', fontSize: 13, lineHeight: 1.6 }}>
+              {adaptiveLearningCps?.adaptiveReason || 'No CPS adaptive state available yet.'}
+            </div>
+          </div>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 20, padding: 18, background: '#ffffff' }}>
+            <AdaptiveTimeline
+              title="Adaptive Timeline (CPS)"
+              items={adaptiveTimelineCps}
+              emptyText="No CPS adaptive history yet."
+            />
+          </div>
+        </div>
+      </PremiumSection>
 
       <PremiumSection
         icon={<Brain size={15} />}

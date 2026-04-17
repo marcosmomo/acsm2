@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { CPSProvider, useCPSContext } from '../../context/CPSContext';
+import AdaptiveTimeline from '../../components/AdaptiveTimeline';
 import SystemIntelligencePanel from '../../components/SystemIntelligencePanel';
 import {
   filterContributionRanking,
@@ -337,7 +338,13 @@ function safeArray(v) {
 }
 
 function AnalyticsSystemContent() {
-  const { systemAnalytics, runSystemAnalytics, supplyChainFeedback } = useCPSContext();
+  const {
+    systemAnalytics,
+    runSystemAnalytics,
+    supplyChainFeedback,
+    localAdaptiveIntelligence,
+    serviceAdaptiveIntelligence,
+  } = useCPSContext();
 
   const analytics = useMemo(() => {
     if (systemAnalytics?.ts || systemAnalytics?.timestamp || systemAnalytics?.generatedAt) {
@@ -433,6 +440,40 @@ console.log('LEARNING FIELDS', {
   const systemState = analytics?.systemState || {};
   const feedbackAssessment = supplyChainFeedback?.globalAssessment || {};
   const feedbackDirectives = supplyChainFeedback?.globalDirectives || {};
+  const feedbackAdaptive =
+    supplyChainFeedback?.adaptiveLearning || supplyChainFeedback?.raw?.adaptiveLearning || {};
+  const adaptiveAction =
+    feedbackDirectives?.adaptiveAction || supplyChainFeedback?.raw?.globalDirectives?.adaptiveAction;
+  const strategyClass =
+    feedbackDirectives?.strategyClass || supplyChainFeedback?.raw?.globalDirectives?.strategyClass;
+  const feedbackTimeline = (
+    Array.isArray(supplyChainFeedback?.adaptiveTimeline)
+      ? supplyChainFeedback.adaptiveTimeline
+      : Array.isArray(supplyChainFeedback?.raw?.adaptiveTimeline)
+      ? supplyChainFeedback.raw.adaptiveTimeline
+      : []
+  )
+    .slice()
+    .sort((a, b) => Number(b?.ts || Date.parse(b?.timestamp) || 0) - Number(a?.ts || Date.parse(a?.timestamp) || 0))
+    .slice(0, 8);
+  const localAdaptiveLearning = localAdaptiveIntelligence?.adaptiveLearningLocal || {};
+  const localAdaptiveTimeline = (
+    Array.isArray(localAdaptiveIntelligence?.adaptiveTimelineLocal)
+      ? localAdaptiveIntelligence.adaptiveTimelineLocal
+      : []
+  )
+    .slice()
+    .sort((a, b) => Number(b?.ts || Date.parse(b?.timestamp) || 0) - Number(a?.ts || Date.parse(a?.timestamp) || 0))
+    .slice(0, 8);
+  const serviceAdaptiveLearning = serviceAdaptiveIntelligence?.adaptiveLearningService || {};
+  const serviceAdaptiveTimeline = (
+    Array.isArray(serviceAdaptiveIntelligence?.adaptiveTimelineService)
+      ? serviceAdaptiveIntelligence.adaptiveTimelineService
+      : []
+  )
+    .slice()
+    .sort((a, b) => Number(b?.ts || Date.parse(b?.timestamp) || 0) - Number(a?.ts || Date.parse(a?.timestamp) || 0))
+    .slice(0, 8);
   const localFeedback = supplyChainFeedback?.local || {};
   const recommendedFocus =
   keepManagedValue(analytics?.recommendedFocus, activeAcsm) || '';
@@ -607,23 +648,31 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
                   Priority {txt(feedbackDirectives?.priority)}
                 </span>
               </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                State: <strong>{txt(feedbackAssessment?.systemState)}</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>
+                <div>State: <strong>{txt(feedbackAssessment?.systemState)}</strong></div>
+                <div>Mode: <strong>{txt(feedbackAssessment?.coordinationMode)}</strong></div>
               </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                Mode: <strong>{txt(feedbackAssessment?.coordinationMode)}</strong>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.10)', paddingTop: 10, display: 'grid', gap: 6 }}>
+                <div style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 800 }}>Local Guidance</div>
+                <div style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>Directive: <strong>{txt(localFeedback?.directive)}</strong></div>
+                <div style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>Focus: <strong>{txt(localFeedback?.focus)}</strong></div>
+                <div style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>Reason: <strong>{txt(localFeedback?.reason)}</strong></div>
+                <div style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>Target CPS: <strong>{joinTargets(localFeedback?.targetCps)}</strong></div>
               </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                Directive: <strong>{txt(localFeedback?.directive)}</strong>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.10)', paddingTop: 10, display: 'grid', gap: 8 }}>
+                <div style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 800 }}>Adaptive Intelligence</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, color: '#cbd5e1', fontSize: 12, lineHeight: 1.45 }}>
+                  <div>Temporal State: <strong>{txt(feedbackAdaptive?.temporalState)}</strong></div>
+                  <div>Adaptive Action: <strong>{txt(adaptiveAction)}</strong></div>
+                  <div>Strategy Class: <strong>{txt(strategyClass)}</strong></div>
+                  <div>Effectiveness: <strong>{txt(feedbackAdaptive?.interventionEffectiveness)}</strong></div>
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.45 }}>
+                  {txt(feedbackAdaptive?.adaptiveReason)}
+                </div>
               </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                Focus: <strong>{txt(localFeedback?.focus)}</strong>
-              </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                Reason: <strong>{txt(localFeedback?.reason)}</strong>
-              </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-                Target CPS: <strong>{joinTargets(localFeedback?.targetCps)}</strong>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.10)', paddingTop: 10 }}>
+                <AdaptiveTimeline title="Adaptive Timeline" items={feedbackTimeline} variant="dark" />
               </div>
             </div>
           </div>
@@ -698,6 +747,60 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
             tone={getPatternTone(analytics?.learningConsensus)}
           />
         </div>
+
+        <SectionCard
+          title="Local Adaptive Intelligence"
+          subtitle="Temporal adaptive state calculated locally for the CPS managed by this ACSM."
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, padding: 16, background: '#ffffff', display: 'grid', gap: 10 }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>Local State</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, color: '#475569', fontSize: 13, lineHeight: 1.5 }}>
+                <div>Temporal State: <strong>{txt(localAdaptiveLearning?.temporalState)}</strong></div>
+                <div>Adaptive Action: <strong>{txt(localAdaptiveLearning?.adaptiveAction)}</strong></div>
+                <div>Strategy Class: <strong>{txt(localAdaptiveLearning?.strategyClass)}</strong></div>
+                <div>Effectiveness: <strong>{txt(localAdaptiveLearning?.interventionEffectiveness)}</strong></div>
+              </div>
+              <div style={{ color: '#64748b', fontSize: 13, lineHeight: 1.6 }}>
+                {txt(localAdaptiveLearning?.adaptiveReason, 'No local adaptive state available yet.')}
+              </div>
+            </div>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, padding: 16, background: '#ffffff' }}>
+              <AdaptiveTimeline
+                title="Adaptive Timeline (local)"
+                items={localAdaptiveTimeline}
+                emptyText="No local adaptive history yet."
+              />
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Service Adaptive Intelligence"
+          subtitle="Level 3 temporal coordination across ACSM1, ACSM2, and ACSM3."
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, padding: 16, background: '#ffffff', display: 'grid', gap: 10 }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>Service State</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, color: '#475569', fontSize: 13, lineHeight: 1.5 }}>
+                <div>Temporal State: <strong>{txt(serviceAdaptiveLearning?.temporalState)}</strong></div>
+                <div>Adaptive Action: <strong>{txt(serviceAdaptiveLearning?.adaptiveAction)}</strong></div>
+                <div>Strategy Class: <strong>{txt(serviceAdaptiveLearning?.strategyClass)}</strong></div>
+                <div>Effectiveness: <strong>{txt(serviceAdaptiveLearning?.interventionEffectiveness)}</strong></div>
+              </div>
+              <div style={{ color: '#64748b', fontSize: 13, lineHeight: 1.6 }}>
+                {txt(serviceAdaptiveLearning?.adaptiveReason, 'No service adaptive state available yet.')}
+              </div>
+            </div>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, padding: 16, background: '#ffffff' }}>
+              <AdaptiveTimeline
+                title="Adaptive Timeline (service)"
+                items={serviceAdaptiveTimeline}
+                emptyText="No service adaptive history yet."
+              />
+            </div>
+          </div>
+        </SectionCard>
 
         <SystemIntelligencePanel analytics={analytics} />
 
