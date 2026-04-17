@@ -24,6 +24,12 @@ function pct(value) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+function clamp01(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.min(Math.max(numeric, 0), 1);
+}
+
 function txt(value, fallback = '-') {
   if (value === undefined || value === null || value === '') return fallback;
   return String(value);
@@ -38,6 +44,46 @@ function getOeeTone(value) {
   if (n >= 0.85) return 'good';
   if (n >= 0.6) return 'warn';
   return 'bad';
+}
+
+function getOeeMeta(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    return {
+      label: 'No data',
+      tone: 'neutral',
+      color: '#94a3b8',
+      track: 'rgba(148,163,184,0.24)',
+      progress: 0,
+    };
+  }
+
+  const progress = Math.min(Math.max(n, 0), 1);
+  if (progress >= 0.85) {
+    return {
+      label: 'Stable',
+      tone: 'good',
+      color: '#22c55e',
+      track: 'rgba(34,197,94,0.18)',
+      progress,
+    };
+  }
+  if (progress >= 0.6) {
+    return {
+      label: 'Moderate',
+      tone: 'warn',
+      color: '#f59e0b',
+      track: 'rgba(245,158,11,0.20)',
+      progress,
+    };
+  }
+  return {
+    label: 'Critical',
+    tone: 'bad',
+    color: '#ef4444',
+    track: 'rgba(239,68,68,0.20)',
+    progress,
+  };
 }
 
 function getRiskTone(risk) {
@@ -140,6 +186,127 @@ function MetricCard({ label, value, helper, tone = 'neutral' }) {
   );
 }
 
+function GlobalOeeGaugeCard({
+  value,
+  criticalCpsId,
+  recommendedFocus,
+  bottleneckCpsId,
+  coordinationMode,
+}) {
+  const meta = getOeeMeta(value);
+  const size = 190;
+  const stroke = 14;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dash = meta.progress * circumference;
+
+  return (
+    <div
+      style={{
+        borderRadius: 22,
+        padding: 20,
+        background: 'rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        display: 'grid',
+        gap: 14,
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+        <div style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 700 }}>Global OEE</div>
+        <span style={badgeStyle(meta.tone)}>{meta.label}</span>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          position: 'relative',
+          width: size,
+          height: size,
+          margin: '0 auto',
+        }}
+      >
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="rgba(255,255,255,0.14)"
+            strokeWidth={stroke}
+            fill="none"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={meta.color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            fill="none"
+            strokeDasharray={`${dash} ${circumference - dash}`}
+          />
+        </svg>
+        <div style={{ position: 'absolute', textAlign: 'center', display: 'grid', gap: 6 }}>
+          <div style={{ fontSize: 12, color: '#cbd5e1', fontWeight: 800 }}>System OEE</div>
+          <div style={{ fontSize: 38, fontWeight: 900, color: '#ffffff', lineHeight: 1 }}>
+            {pct(value)}
+          </div>
+          <div style={{ fontSize: 13, color: meta.color, fontWeight: 900 }}>{meta.label}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gap: 8 }}>
+        <div
+          style={{
+            height: 10,
+            borderRadius: 999,
+            overflow: 'hidden',
+            background: 'rgba(255,255,255,0.12)',
+          }}
+        >
+          <div
+            style={{
+              width: `${Math.round(meta.progress * 100)}%`,
+              height: '100%',
+              borderRadius: 999,
+              background: `linear-gradient(90deg, ${meta.color}, #38bdf8)`,
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', fontSize: 12 }}>
+          <span>0%</span>
+          <span>Target 85%</span>
+          <span>100%</span>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: 10,
+          color: '#cbd5e1',
+          fontSize: 13,
+          lineHeight: 1.5,
+        }}
+      >
+        <div>
+          Focus: <strong>{txt(recommendedFocus, '-')}</strong>
+        </div>
+        <div>
+          Bottleneck: <strong>{txt(bottleneckCpsId, '-')}</strong>
+        </div>
+        <div>
+          Critical CPS: <strong>{txt(criticalCpsId, '-')}</strong>
+        </div>
+        <div>
+          Mode: <strong>{txt(coordinationMode, '-')}</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SectionCard({ title, subtitle, children }) {
   return (
     <section
@@ -192,6 +359,24 @@ console.log('LEARNING FIELDS', {
 });
 
   const globalOEE = analytics?.globalOEE || analytics?.oee || {};
+  const overallAvailability = clamp01(
+    analytics?.globalSummary?.overallAvailability ?? globalOEE?.availability
+  );
+  const overallPerformance = clamp01(
+    analytics?.globalSummary?.overallPerformance ?? globalOEE?.performance
+  );
+  const overallQuality = clamp01(
+    analytics?.globalSummary?.overallQuality ?? globalOEE?.quality
+  );
+  const overallOee = clamp01(
+    analytics?.globalSummary?.overallOee ??
+      globalOEE?.oee ??
+      globalOEE?.current ??
+      analytics?.oeeGlobal ??
+      (overallAvailability != null && overallPerformance != null && overallQuality != null
+        ? overallAvailability * overallPerformance * overallQuality
+        : null)
+  );
   const criticalCPS = analytics?.criticalCPS || analytics?.criticalCps || null;
   const bottleneck = analytics?.bottleneck || null;
   const criticalCpsId = keepManagedValue(criticalCPS?.cpsId || criticalCPS, activeAcsm);
@@ -373,11 +558,9 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
                 }}
               >
                 <span
-                  style={badgeStyle(
-                    getOeeTone(globalOEE.oee ?? globalOEE.current ?? analytics?.oeeGlobal)
-                  )}
+                  style={badgeStyle(getOeeTone(overallOee))}
                 >
-                  Global OEE {pct(globalOEE.oee ?? globalOEE.current ?? analytics?.oeeGlobal)}
+                  Global OEE {pct(overallOee)}
                 </span>
                 <span style={badgeStyle(getRiskTone(riskLevel))}>
                   Risk {riskLevel}
@@ -388,35 +571,20 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
                 <span style={badgeStyle('info')}>
                   Confidence {num(confidence, 2)}
                 </span>
+                <span style={badgeStyle('neutral')}>Level 3 Mode {level3Mode}</span>
+                <span style={badgeStyle('neutral')}>
+                  Participants {activeParticipantsCount}/{expectedParticipantsCount}
+                </span>
               </div>
             </div>
 
-            <div
-              style={{
-                borderRadius: 22,
-                padding: 20,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                display: 'grid',
-                gap: 12,
-              }}
-            >
-              <div style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 700 }}>
-                Coordinator Output
-              </div>
-              <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.1 }}>
-                {criticalCpsId || '-'}
-              </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 }}>
-                Focus: <strong>{recommendedFocus}</strong>
-              </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 }}>
-                Bottleneck: <strong>{bottleneckCpsId || '-'}</strong>
-              </div>
-              <div style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 1.7 }}>
-                Mode: <strong>{systemState?.coordinationMode || analytics?.coordinationMode || '?'}</strong>
-              </div>
-            </div>
+            <GlobalOeeGaugeCard
+              value={overallOee}
+              criticalCpsId={criticalCpsId}
+              recommendedFocus={recommendedFocus}
+              bottleneckCpsId={bottleneckCpsId}
+              coordinationMode={systemState?.coordinationMode || analytics?.coordinationMode}
+            />
 
             <div
               style={{
@@ -470,9 +638,9 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
         >
           <MetricCard
             label="Global OEE"
-            value={pct(globalOEE.oee ?? globalOEE.current ?? analytics?.oeeGlobal)}
+            value={pct(overallOee)}
             helper="System efficiency"
-            tone={getOeeTone(globalOEE.oee ?? globalOEE.current ?? analytics?.oeeGlobal)}
+            tone={getOeeTone(overallOee)}
           />
 
           <MetricCard
