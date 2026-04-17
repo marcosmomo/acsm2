@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { CPSProvider, useCPSContext } from '../../context/CPSContext';
 import AdaptiveTimeline from '../../components/AdaptiveTimeline';
+import HistoryRecordsButton from '../../components/HistoryRecordsButton';
 import SystemIntelligencePanel from '../../components/SystemIntelligencePanel';
 import {
   filterContributionRanking,
@@ -640,6 +641,7 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
               <div style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 700 }}>
                 Supply Chain Feedback
               </div>
+              <HistoryRecordsButton level="level4" variant="dark" />
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <span style={badgeStyle(getRiskTone(feedbackAssessment?.riskLevel))}>
                   Risk {txt(feedbackAssessment?.riskLevel)}
@@ -752,6 +754,9 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
           title="Local Adaptive Intelligence"
           subtitle="Temporal adaptive state calculated locally for the CPS managed by this ACSM."
         >
+          <div style={{ marginBottom: 12 }}>
+            <HistoryRecordsButton level="level2" />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
             <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, padding: 16, background: '#ffffff', display: 'grid', gap: 10 }}>
               <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>Local State</div>
@@ -779,6 +784,9 @@ const predictedSystemOEE = Array.isArray(predictedSystemOEEValue)
           title="Service Adaptive Intelligence"
           subtitle="Level 3 temporal coordination across ACSM1, ACSM2, and ACSM3."
         >
+          <div style={{ marginBottom: 12 }}>
+            <HistoryRecordsButton level="level3" />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
             <div style={{ border: '1px solid #e2e8f0', borderRadius: 18, padding: 16, background: '#ffffff', display: 'grid', gap: 10 }}>
               <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>Service State</div>

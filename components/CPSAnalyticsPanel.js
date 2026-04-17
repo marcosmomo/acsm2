@@ -19,6 +19,7 @@ import {
   LineChart,
 } from 'lucide-react';
 import AdaptiveTimeline from './AdaptiveTimeline';
+import HistoryRecordsButton from './HistoryRecordsButton';
 
 const toNumber = (v) => {
   const n = Number(v);
@@ -895,6 +896,9 @@ const oeeValue = getOeeValue(analytics, statistics);
         title="Local Adaptive Intelligence"
         subtitle="Short-window adaptive memory for this CPS asset."
       >
+        <div style={{ marginBottom: 12 }}>
+          <HistoryRecordsButton level="level1" />
+        </div>
         <div style={responsiveTwoCol}>
           <div style={{ border: '1px solid #e2e8f0', borderRadius: 20, padding: 18, background: '#ffffff', display: 'grid', gap: 10 }}>
             <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>CPS Adaptive State</div>
